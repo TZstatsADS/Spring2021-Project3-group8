@@ -35,7 +35,7 @@ train_xgboost <- function(features, labels, eta, colsample_bytree, reweight){
     scale_pos_weight <- sum(labels == 0) / sum(labels == 1)
   }
   
-  bst <- xgboost(data = as.matrix(features), label = labels, max.depth = 3, eta = eta, nrounds = 300, objective = "binary:logistic", scale_pos_weight = scale_pos_weight, colsample_bytree = colsample_bytree)
+  bst <- xgboost(data = as.matrix(features), label = labels, max.depth = 2, eta = eta, nrounds = 300, objective = "binary:logistic", scale_pos_weight = scale_pos_weight, colsample_bytree = colsample_bytree)
   
   return(bst)
 }
