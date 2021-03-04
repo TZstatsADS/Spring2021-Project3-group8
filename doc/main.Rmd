@@ -352,7 +352,7 @@ for (v in unique(label_test)){
 }
 
 label_pred <- ifelse(prob_pred > 0.5, 1, 0)
-label_test <- ifelse(label_test == 2, 0, 1)
+label_test <- ifelse(label_test == 2, 1, 0)
 
 accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
 tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
@@ -510,7 +510,7 @@ for (v in unique(label_test)){
 }
 
 label_pred <- ifelse(prob_pred > 0.5, 1, 0)
-label_test <- ifelse(label_test == 2, 0, 1)
+label_test <- ifelse(label_test == 2, 1, 0)
 
 accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
 tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
@@ -616,7 +616,7 @@ feature_train = as.matrix(dat_train[, -6007])
 label_train = as.integer(dat_train$label)
 feature_test <- as.matrix(dat_test[, -6007])
 label_test <- as.integer(dat_test$label)
-label_test <- ifelse(label_test == 2, 0, 1)
+label_test <- ifelse(label_test == 2, 1, 0)
 weight_test <- rep(NA, length(label_test))
 
 # training weights
@@ -662,7 +662,7 @@ for (v in unique(label_test)){
   weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
 }
 
-label_test <- ifelse(label_test == 2, 0, 1)
+label_test <- ifelse(label_test == 2, 1, 0)
 
 accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
 

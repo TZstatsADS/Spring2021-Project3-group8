@@ -48,7 +48,7 @@ cv.function_xgboost <- function(features, labels, K, eta, colsample_bytree, rewe
     prob_pred <- test_xgboost(model_train, feature_test, pred.type = 'probability')
     
     label_pred <- ifelse(prob_pred > 0.5, 1, 0)
-    label_test <- ifelse(label_test == 2, 0, 1)
+    label_test <- ifelse(label_test == 2, 1, 0)
     
     cv.error[i] <- 1 - sum(weight_test * (label_pred == label_test)) / sum(weight_test)
     

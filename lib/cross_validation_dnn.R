@@ -49,7 +49,7 @@ cv.function_dnn <- function(features, labels, K, reweight = FALSE){
     ## make predictions
     label_pred <- test_dnn(model_train, feature_test)
     
-    label_test <- ifelse(label_test == 2, 0, 1)
+    label_test <- ifelse(label_test == 2, 1, 0)
     
     cv.error[i] <- 1 - sum(weight_test * (label_pred == label_test)) / sum(weight_test)
     

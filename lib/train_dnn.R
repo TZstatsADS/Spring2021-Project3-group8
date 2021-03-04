@@ -14,7 +14,7 @@
 # rm(y)
 
 train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weight_test = NULL){
-  labels <- ifelse(labels == 2, 0, 1)
+  labels <- ifelse(labels == 2, 1, 0)
   
   # class_weight <- NULL
   # if (!is.null(w)){
@@ -93,7 +93,7 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
 # b = load("../output/label_test_tmp_only.RData")
 # labels2 = get(b)
 # rm(b)
-# labels2 <- ifelse(labels2 == 2, 0, 1)
+# labels2 <- ifelse(labels2 == 2, 1, 0)
 # 
 # x_test <- features2 %>% 
 #   scale()

@@ -48,7 +48,7 @@ cv.function_gbm <- function(features, labels, K, n.trees, shrinkage, reweight = 
     prob_pred <- test_gbm(model_train, feature_test, n.trees, pred.type = 'response')
     
     label_pred <- ifelse(prob_pred > 0.5, 1, 0)
-    label_test <- ifelse(label_test == 2, 0, 1)
+    label_test <- ifelse(label_test == 2, 1, 0)
     
     cv.error[i] <- 1 - sum(weight_test * (label_pred == label_test)) / sum(weight_test)
     

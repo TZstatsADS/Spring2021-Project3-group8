@@ -16,7 +16,7 @@
 # b = load("../output/label_train_tmp_only.RData")
 # labels = get(b)
 # rm(b)
-# labels <- ifelse(labels == 2, 0, 1)
+# labels <- ifelse(labels == 2, 1, 0)
 # 
 # a = load("../output/feature_test_tmp_only.RData")
 # features2 = get(a)
@@ -25,10 +25,10 @@
 # b = load("../output/label_test_tmp_only.RData")
 # labels2 = get(b)
 # rm(b)
-# labels2 <- ifelse(labels2 == 2, 0, 1)
+# labels2 <- ifelse(labels2 == 2, 1, 0)
 
 train_xgboost <- function(features, labels, eta, colsample_bytree, reweight){
-  labels <- ifelse(labels == 2, 0, 1)
+  labels <- ifelse(labels == 2, 1, 0)
   
   scale_pos_weight = NULL
   if (reweight) {
