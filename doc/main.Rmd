@@ -532,7 +532,6 @@ cat("Time for training model=", tm_train[3], "s \n")
 cat("Time for testing model=", tm_test[3], "s \n")
 ```
 
---------------------------------------------------------------------------------------------------------------------------------
 ### DNN
 
 ### Step 4: Train a classification model with training features and responses

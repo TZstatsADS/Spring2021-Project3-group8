@@ -37,26 +37,29 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
   model <- keras_model_sequential()
   model %>% 
     layer_batch_normalization() %>%
-    layer_dense(units = 600, activation = 'relu', input_shape = ncol(x_train)) %>%
-    # layer_dropout(rate = 0.25) %>%
+    layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train)) %>%
+    # layer_dropout(rate = 0.2) %>%
     layer_batch_normalization() %>%
-    layer_dense(units = 300, activation = 'relu') %>%
-    # layer_dropout(rate = 0.25) %>%
-    layer_dense(units = 150, activation = 'relu') %>%
-    # layer_dropout(rate = 0.25) %>%
-    layer_dense(units = 50, activation = 'relu') %>%
+    layer_dense(units = 256, activation = 'relu') %>%
+    # layer_dropout(rate = 0.2) %>%
+    layer_batch_normalization() %>%
+    layer_dense(units = 128, activation = 'relu') %>%
+    # layer_dropout(rate = 0.2) %>%
+    layer_batch_normalization() %>%
+    layer_dense(units = 64, activation = 'relu') %>%
     layer_dense(units = 2, activation = 'softmax')
   
-    # layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train)) %>%
-    # layer_dropout(rate = 0.2) %>%
     # layer_batch_normalization() %>%
-    # layer_dense(units = 256, activation = 'relu') %>%
-    # layer_dropout(rate = 0.2) %>%
+    # layer_dense(units = 600, activation = 'relu', input_shape = ncol(x_train)) %>%
+    # # layer_dropout(rate = 0.2) %>%
     # layer_batch_normalization() %>%
-    # layer_dense(units = 128, activation = 'relu') %>%
-    # layer_dropout(rate = 0.2) %>%
+    # layer_dense(units = 300, activation = 'relu') %>%
+    # # layer_dropout(rate = 0.2) %>%
     # layer_batch_normalization() %>%
-    # layer_dense(units = 64, activation = 'relu') %>%
+    # layer_dense(units = 150, activation = 'relu') %>%
+    # # layer_dropout(rate = 0.2) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 50, activation = 'relu') %>%
     # layer_dense(units = 2, activation = 'softmax')
   
   history <- model %>% compile(
@@ -68,7 +71,7 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
   model %>% fit(
     x_train, y_train, 
     epochs = 100, 
-    batch_size = 5,
+    batch_size = 10,
     # validation_split = validation_split,
     validation_data = validation_data,
     sample_weight = w
