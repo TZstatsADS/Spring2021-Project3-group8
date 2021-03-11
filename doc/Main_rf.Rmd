@@ -71,7 +71,7 @@ run.cv.rf <- FALSE # run cross-validation on the training set for random forest
 run.train.rf <- FALSE # run evaluation on entire train set
 run.test.rf <- TRUE # run evaluation on an independent test set
 
-run.rose <- FALSE # regenerate balanced data with ROSE method
+run.rose <- TRUE # regenerate balanced data with ROSE method
 run.cv.rf.rose <- FALSE #run cross-validation on the training set for randome forecast with ROSE
 run.test.rf.rose <- TRUE # run evaluation on an independent test set
 ```
@@ -288,6 +288,7 @@ source("../lib/ROSE.R")
 Since the data is imbalanced and random forest does not have a weight parameter, I will use Random Over-Sampling Examples (ROSE) to create a balanced data set for training. Selection of hyperparameter remains the same. 
 
 ```{r runrose}
+# Training data with ROSE is too big to upload to Github, so we need to train the data again. 
 if(run.rose){
   dat_train_rose <- use_rose(dat_train)
   save(dat_train_rose, file="../output/dat_train_rose.RData")
