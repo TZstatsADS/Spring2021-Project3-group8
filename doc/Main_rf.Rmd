@@ -1,0 +1,414 @@
+# Testing model with Random Forest
+Author: Catherine Gao
+Project 3
+
+This section explores training a predictive model with Random Forest. I will tune the model with different hyperparameters and handling the imbalanced data.
+
+## Analysis
+
+```{r message=FALSE, warning = FALSE, echo = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+packages.used <- c("R.matlab","readxl", "dplyr", "ggplot2", "caret","pROC","randomForest", "magrittr", "e1071","grid","gridExtra", "ROSE", "DMwR")
+
+# check packages that need to be installed.
+packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
+
+# install additional packages
+if(length(packages.needed) > 0){
+   install.packages(packages.needed, dependencies = TRUE)
+}
+
+library(R.matlab)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(caret)
+library(pROC)
+library(randomForest)
+library(magrittr)   
+library(e1071)
+library(grid)
+library(gridExtra)
+library(ROSE)
+library(DMwR)
+
+```
+
+### Step 0 set work directories
+```{r wkdir, eval=FALSE}
+set.seed(2020)
+
+```
+
+Provide directories for training images. Training images and Training fiducial points will be in different subfolders.
+
+```{r train_dir}
+train_dir <- "../data/train_set/" #may need to be changed to local directory
+
+train_image_dir <- paste(train_dir, "images/", sep="")
+train_pt_dir <- paste(train_dir,  "points/", sep="")
+train_label_path <- paste(train_dir, "label.csv", sep="") 
+```
+
+### Step 1: set up controls for evaluation experiments.
+
+In this chunk, we have a set of controls for the evaluation experiments. 
+
++ (T/F) cross-validation on the training set
++ (T/F) reweighting the samples for training set 
++ (number) K, the number of CV folds
++ (T/F) process features for training set
++ (T/F) run evaluation on an independent test set
++ (T/F) process features for test set
+
+```{r exp_setup}
+K <- 5  # number of CV folds
+
+run.fudicial.list <- FALSE
+run.feature.train <- FALSE # process features for training set
+run.feature.test <- FALSE # process features for test set
+
+run.cv.rf <- FALSE # run cross-validation on the training set for random forest 
+run.train.rf <- FALSE # run evaluation on entire train set
+run.test.rf <- TRUE # run evaluation on an independent test set
+
+run.rose <- FALSE # regenerate balanced data with ROSE method
+run.cv.rf.rose <- FALSE #run cross-validation on the training set for randome forecast with ROSE
+run.test.rf.rose <- TRUE # run evaluation on an independent test set
+```
+
+Using cross-validation or independent test set evaluation, I compare the performance of models with different specifications. 
+
+First, I identify the following hyperparameters to tune the random forest model.
+
+```{r model_setup}
+
+hyper_grid_rf <- expand.grid(
+  ntree = c(200, 500, 800, 1000),
+  mtry = c(20,50))
+
+```
+
+### Step 2: import data and train-test split 
+```{r train-test split}
+info <- read.csv(train_label_path)
+n <- nrow(info)
+n_train <- round(n*(4/5), 0)
+train_idx <- sample(info$Index, n_train, replace = F)
+test_idx <- setdiff(info$Index, train_idx)
+```
+
+
+Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
+```{r read fiducial points}
+n_files <- length(list.files(train_image_dir))
+
+if (run.fudicial.list){
+  readMat.matrix <- function(index){
+       return(round(readMat(paste0(train_pt_dir, sprintf("%04d", index), ".mat"))[[1]],0))
+  }
+  
+  fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
+  save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
+  
+  # otherwise load the data stored for convenience
+} else {
+  load(file="../output/fiducial_pt_list.RData")
+}
+```
+
+### Step 3: construct features and responses
+
+`feature.R` is the wrapper for all our feature engineering functions and options. The function `feature( )`  have options that correspond to different scenarios for our project and produces an R object that contains features and responses that are required by all the models we are going to evaluate later. 
+  
+  + `feature.R`
+  + Input: list of images or fiducial point
+  + Output: an RData file that contains extracted features and corresponding responses
+
+```{r feature}
+source("../lib/feature.R")
+tm_feature_train <- NA
+if(run.feature.train){
+  tm_feature_train <- system.time(dat_train <- feature(fiducial_pt_list, train_idx))
+  save(dat_train, tm_feature_train, file="../output/feature_train.RData")
+}else{
+  load(file="../output/feature_train.RData")
+}
+
+tm_feature_test <- NA
+if(run.feature.test){
+  tm_feature_test <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
+  save(dat_test, tm_feature_test, file="../output/feature_test.RData")
+}else{
+  load(file="../output/feature_test.RData")
+}
+```
+
+## Random Forest
+
+### Step 4: Train a classification model with training features and responses
+
+Call the train_rf model and test_rf model from library. 
+
+```{r loadlib_rf, echo=FALSE}
+source("../lib/train_rf.R") 
+source("../lib/test_rf.R")
+source("../lib/cross_validation_rf.R")
+```
+
+#### Model selection with cross-validation
+
+* Do model selection by choosing among different values of training model parameters.
+
+I cross-validate hyperparameter "ntrees" and "mtry" with 5-fold validation to identify the combination that gives the highest AUC and lowest error.
+
++ ntree: the default value for ntree is 500, so I'm choosing numbers below and above the default to test for results. The chosen ntree is: 200, 500, 800, 1000.  
+
++ mtry: the default value for mtry is 500, however, from experience, the smaller mtry will generate better results. Therefore, I pick 20 and 50 for tuning 
+
+```{r runcv_rf}
+# split features and labels
+feature_train = as.matrix(dat_train[, -6007])
+label_train = dat_train$label
+
+# run cross-validation
+if(run.cv.rf){
+  res_cv_rf <- matrix(0, nrow = nrow(hyper_grid_rf), ncol = 4)
+  for (i in 1:nrow(hyper_grid_rf)){
+    print(hyper_grid_rf$ntree[i])
+    print(hyper_grid_rf$mtry[i])
+    
+    res_cv_rf[i,] <- cv.function_rf(features = feature_train, 
+                             labels = label_train, 
+                             K,
+                             ntree = hyper_grid_rf$ntree[i],
+                             mtry = hyper_grid_rf$mtry[i])
+  }
+  save(res_cv_rf, file="../output/res_cv_rf.RData")
+}else{
+  load("../output/res_cv_rf.RData")
+}
+```
+
+
+* Visualize cross-validation results. 
+
+```{r cv_vis_rf, out.width = "65%",fig.align = 'center',echo=FALSE}
+res_cv_rf <- as.data.frame(res_cv_rf) 
+colnames(res_cv_rf) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
+
+p1 <- res_cv_rf %>% mutate(
+  mean_error_true = 1- mean_error , sd_error_true = sd(mean_error_true))%>%
+  ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_error_true,
+             ymin = mean_error_true - sd_error, ymax = mean_error_true + sd_error )) + 
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean Error for RF", y="mean error", x="ntrees")
+  
+p2 <- res_cv_rf %>% 
+  ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_AUC,
+             ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean AUC for RF", y="mean AUC", x="ntrees")
+
+grid.arrange(p1, p2, nrow=2)
+```
+
+* Choose the "best" parameter value
+
+```{r best_model_rf}
+tree_best <- hyper_grid_rf$ntree[which.max(res_cv_rf$mean_AUC)]
+mtry_best <- hyper_grid_rf$mtry[which.max(res_cv_rf$mean_AUC)]
+```
+
+* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
+
+```{r final_train_rf}
+
+if (run.train.rf) {
+  tm_train_rf<- system.time(fit_train_rf <- train_rf(feature_train, label_train, ntree = tree_best, mtry = mtry_best))
+
+save(fit_train_rf, tm_train_rf, file="../output/fit_train_rf.RData")
+} else {
+  load(file="../output/fit_train_rf.RData")
+}
+
+```
+
+### Step 5: Run test on test images
+
+```{r test_rf}
+tm_test_rf = NA
+feature_test <- as.matrix(dat_test[, -6007])
+label_test <- dat_test$label
+
+if(run.test.rf){
+  load(file="../output/fit_train_rf.RData")
+  tm_test_rf <- system.time(label_pred <- as.integer(predict(fit_train_rf, feature_test)))
+}
+
+```
+
+#### Evaluation
+
+```{r evaluation_rf, echo=FALSE}
+accu_rf = mean(label_pred == as.integer(label_test))
+auc_rf <- roc(label_pred, as.integer(label_test))$auc
+```
+```{r result_rf,echo=FALSE}
+cat("The unweighted accuracy of the random forest model is ", accu_rf*100, "%.\n")
+cat("The unweighted AUC of the random forest model is ", auc_rf, ".\n")
+```
+
+#### Summarize Running Time
+
+Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
+
+```{r running_time_rf, echo = FALSE}
+
+cat("Time for training random forest model=", tm_train_rf[1], "s \n") 
+cat("Time for testing random forest model=", tm_test_rf[1], "s \n")
+
+```
+
+## Random Forest with ROSE
+
+### Step 4: Train a classification model with training features and responses
+Call the function from library. 
+
+```{r loadlib_rose, echo=FALSE}
+source("../lib/ROSE.R") 
+```
+
+
+#### Model selection with cross-validation
+
+* Do model selection by choosing among different values of training model parameters.
+
+Since the data is imbalanced and random forest does not have a weight parameter, I will use Random Over-Sampling Examples (ROSE) to create a balanced data set for training. Selection of hyperparameter remains the same. 
+
+```{r runrose}
+if(run.rose){
+  dat_train_rose <- use_rose(dat_train)
+  save(dat_train_rose, file="../output/dat_train_rose.RData")
+  
+}else{
+  load("../output/dat_train_rose.RData")
+}
+```
+
+
+Show new number of balanced data set. 
+```{r result_rose}
+
+cat("Number of records with label 0 after ROSE (basic emotion): ", length(which(dat_train_rose$label == 0)), "\n")
+cat("Number of records with label 1 after ROSE (complex emotion): ", length(which(dat_train_rose$label == 1)), "\n")
+```
+
+
+```{r res_cv_rf_rose}
+# split features and labels
+feature_train_rose = as.matrix(dat_train_rose[, -6007])
+label_train_rose = dat_train_rose$label
+
+# run cross-validation
+if(run.cv.rf.rose){
+  res_cv_rf_rose <- matrix(0, nrow = nrow(hyper_grid_rf), ncol = 4)
+  for (i in 1:nrow(hyper_grid_rf)){
+    print(hyper_grid_rf$ntree[i])
+    print(hyper_grid_rf$mtry[i])
+    
+    res_cv_rf_rose[i,] <- cv.function_rf(features = feature_train_rose, 
+                             labels = label_train_rose, 
+                             K,
+                             ntree = hyper_grid_rf$ntree[i],
+                             mtry = hyper_grid_rf$mtry[i])
+  }
+  save(res_cv_rf_rose, file="../output/res_cv_rf_rose.RData")
+}else{
+  load("../output/res_cv_rf_rose.RData")
+}
+```
+
+
+* Visualize cross-validation results
+
+```{r res_cv_rf_rose_plot, out.width = "65%",fig.align = 'center',echo=FALSE}
+res_cv_rf_rose <- as.data.frame(res_cv_rf_rose) 
+colnames(res_cv_rf_rose) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
+
+p1 <- res_cv_rf_rose %>% mutate(
+  mean_error_true = 1- mean_error , sd_error_true = sd(mean_error_true))%>%
+  ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_error_true,
+             ymin = mean_error_true - sd_error, ymax = mean_error_true + sd_error )) + 
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean Error for RF", y="mean error", x="ntrees")
+  
+p2 <- res_cv_rf_rose %>% 
+  ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_AUC,
+             ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean AUC for RF", y="mean AUC", x="ntrees")
+
+grid.arrange(p1, p2, nrow=2)
+```
+
+* Choose the "best" parameter value
+
+```{r best_model_rf_rose}
+tree_best_rose <- hyper_grid_rf$ntree[which.max(res_cv_rf_rose$mean_AUC)]
+mtry_best_rose <- hyper_grid_rf$mtry[which.max(res_cv_rf_rose$mean_AUC)]
+
+```
+
+* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
+```{r final_rf_rose}
+if (run.train.rf) {
+  tm_train_rf_rose<- system.time(fit_train_rf_rose <- train_rf(feature_train_rose, label_train_rose, ntree = tree_best_rose, mtry = mtry_best_rose))
+
+save(fit_train_rf_rose, tm_train_rf_rose, file="../output/fit_train_rf_rose.RData")
+} else {
+  load(file="../output/fit_train_rf_rose.RData")
+}
+
+```
+
+### Step 5: Run test on test images
+
+```{r test_rf_rose}
+tm_test_rf_rose= NA
+feature_test <- as.matrix(dat_test[, -6007])
+label_test <- dat_test$label
+
+if(run.test.rf.rose){
+  load(file="../output/fit_train_rf_rose.RData")
+  tm_test_rf_rose <- system.time(label_pred_rose <- as.integer(predict(fit_train_rf_rose, feature_test)))
+}
+```
+
+#### Evaluation
+
+```{r evaluation_rf_rose}
+accu_rf_rose = mean(label_pred_rose == as.integer(label_test))
+auc_rf_rose <- roc(label_pred_rose, as.integer(label_test))$auc
+```
+
+
+```{r, result_rf_rose,echo = FALSE}
+
+cat("The weighted accuracy of the random forest model with ROSE is ", accu_rf_rose*100, "%.\n")
+cat("The weighted AUC of the random forest model with ROSE is ", auc_rf_rose, ".\n")
+
+```
+
+#### Summarize Running Time
+
+```{r running_time_rf_rose, echo = FALSE}
+cat("Time for training random forest with ROSE model = ", 
+    tm_train_rf_rose[1], " seconds \n", sep = "") 
+cat("Time for testing random forest with ROSE model = ", 
+    tm_test_rf_rose[1], " seconds \n" , sep = "")
+```
+
