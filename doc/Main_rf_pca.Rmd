@@ -187,36 +187,36 @@ I cross-validate hyperparameter "ntrees" and "mtry" with 5-fold validation to id
 
 ```{r runcv_rf}
 # split features and labels
-feature_train = as.matrix(dat_train[, -6007])
+feature_train = as.matrix(feature_pca_train)
 label_train = dat_train$label
 
 # run cross-validation
 if(run.cv.rf){
-  res_cv_rf <- matrix(0, nrow = nrow(hyper_grid_rf), ncol = 4)
+  res_cv_rf_pca <- matrix(0, nrow = nrow(hyper_grid_rf), ncol = 4)
   for (i in 1:nrow(hyper_grid_rf)){
     print(hyper_grid_rf$ntree[i])
     print(hyper_grid_rf$mtry[i])
     
-    res_cv_rf[i,] <- cv.function_rf(features = feature_train, 
+    res_cv_rf_pca[i,] <- cv.function_rf(features = feature_train, 
                              labels = label_train, 
                              K,
                              ntree = hyper_grid_rf$ntree[i],
                              mtry = hyper_grid_rf$mtry[i])
   }
-  save(res_cv_rf, file="../output/res_cv_rf.RData")
+  save(res_cv_rf_pca, file="../output/res_cv_rf_pca.RData")
 }else{
-  load("../output/res_cv_rf.RData")
+  load("../output/res_cv_rf_pca.RData")
 }
 ```
 
 
 * Visualize cross-validation results. 
 
-```{r cv_vis_rf, out.width = "65%",fig.align = 'center',echo=FALSE}
-res_cv_rf <- as.data.frame(res_cv_rf) 
-colnames(res_cv_rf) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
+```{r cv_vis_rf_pca, out.width = "65%",fig.align = 'center',echo=FALSE}
+res_cv_rf_pca <- as.data.frame(res_cv_rf_pca) 
+colnames(res_cv_rf_pca) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
 
-p1 <- res_cv_rf %>% mutate(
+p1 <- res_cv_rf_pca %>% mutate(
   mean_error_true = 1- mean_error , sd_error_true = sd(mean_error_true))%>%
   ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_error_true,
              ymin = mean_error_true - sd_error, ymax = mean_error_true + sd_error )) + 
@@ -224,7 +224,7 @@ p1 <- res_cv_rf %>% mutate(
   theme(axis.text.x = element_text(angle = 90, hjust = 1))+
   labs(title="Mean Error for RF", y="mean error", x="ntrees")
   
-p2 <- res_cv_rf %>% 
+p2 <- res_cv_rf_pca %>% 
   ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_AUC,
              ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
   geom_crossbar() +
@@ -236,46 +236,46 @@ grid.arrange(p1, p2, nrow=2)
 
 * Choose the "best" parameter value
 
-```{r best_model_rf}
-tree_best <- hyper_grid_rf$ntree[which.max(res_cv_rf$mean_AUC)]
-mtry_best <- hyper_grid_rf$mtry[which.max(res_cv_rf$mean_AUC)]
+```{r best_model_rf_pca}
+tree_best_pca <- hyper_grid_rf$ntree[which.max(res_cv_rf_pca$mean_AUC)]
+mtry_best_pca <- hyper_grid_rf$mtry[which.max(res_cv_rf_pca$mean_AUC)]
 ```
 
 * Train the model with the entire training set using the selected model (model parameter) via cross-validation.
 
-```{r final_train_rf}
+```{r final_train_rf_pca}
 
 if (run.train.rf) {
-  tm_train_rf<- system.time(fit_train_rf <- train_rf(feature_train, label_train, ntree = tree_best, mtry = mtry_best))
+  tm_train_rf_pca <- system.time(fit_train_rf_pca <- train_rf(feature_train, label_train, ntree = tree_best_pca, mtry = mtry_best_pca))
 
-save(fit_train_rf, tm_train_rf, file="../output/fit_train_rf.RData")
+save(fit_train_rf_pca, tm_train_rf_pca, file="../output/fit_train_rf_pca.RData")
 } else {
-  load(file="../output/fit_train_rf.RData")
+  load(file="../output/fit_train_rf_pca.RData")
 }
 
 ```
 
 ### Step 5: Run test on test images
 
-```{r test_rf}
-tm_test_rf = NA
-feature_test <- as.matrix(dat_test[, -6007])
+```{r test_rf_pca}
+tm_test_rf_pca = NA
+feature_test <- as.matrix(feature_pca_test)
 label_test <- dat_test$label
 
 if(run.test.rf){
-  load(file="../output/fit_train_rf.RData")
-  tm_test_rf <- system.time(label_pred <- as.integer(predict(fit_train_rf, feature_test)))
+  load(file="../output/fit_train_rf_pca.RData")
+  tm_test_rf_pca <- system.time(label_pred <- as.integer(predict(fit_train_rf_pca, feature_test)))
 }
 
 ```
 
 #### Evaluation
 
-```{r evaluation_rf, echo=FALSE}
+```{r evaluation_rf_pca, echo=FALSE}
 accu_rf = mean(label_pred == as.integer(label_test))
 auc_rf <- roc(label_pred, as.integer(label_test))$auc
 ```
-```{r result_rf,echo=FALSE}
+```{r result_rf_pca,echo=FALSE}
 cat("The unweighted accuracy of the random forest model is ", accu_rf*100, "%.\n")
 cat("The unweighted AUC of the random forest model is ", auc_rf, ".\n")
 ```
@@ -284,10 +284,10 @@ cat("The unweighted AUC of the random forest model is ", auc_rf, ".\n")
 
 Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
 
-```{r running_time_rf, echo = FALSE}
+```{r running_time_rf_pca, echo = FALSE}
 
-cat("Time for training random forest model=", tm_train_rf[1], "s \n") 
-cat("Time for testing random forest model=", tm_test_rf[1], "s \n")
+cat("Time for training random forest model=", tm_train_rf_pca[1], "s \n") 
+cat("Time for testing random forest model=", tm_test_rf_pca[1], "s \n")
 
 ```
 
