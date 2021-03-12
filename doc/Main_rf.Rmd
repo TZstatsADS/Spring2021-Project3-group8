@@ -89,7 +89,7 @@ hyper_grid_rf <- expand.grid(
 ```
 
 ### Step 2: import data and train-test split 
-```{r train-test split}
+```{r}
 info <- read.csv(train_label_path)
 n <- nrow(info)
 n_train <- round(n*(4/5), 0)
@@ -99,7 +99,7 @@ test_idx <- setdiff(info$Index, train_idx)
 
 
 Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
-```{r read fiducial points}
+```{r}
 n_files <- length(list.files(train_image_dir))
 
 if (run.fudicial.list){
