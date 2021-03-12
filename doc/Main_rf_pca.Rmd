@@ -138,26 +138,28 @@ if(run.feature.test){
 }else{
   load(file="../output/feature_test.RData")
 }
+```
 
-# create PCA features
+We will train a PCA model with the training set, then apply the same PCA model to the testing set. 
 
-# # PCA of features
-# source("../lib/feature_pca.R")
-# 
-# if(TRUE){
-#   tm_feature_train_pca <- system.time({feature_train_pca = as.matrix(feature_pca(dat_train));
-#   feature_test_pca = as.matrix(feature_pca(dat_test))
-#   })
-#   save(feature_train_pca, file="../output/feature_train_pca.RData")
-#   save(feature_test_pca, file="../output/feature_test_pca.RData")
-# }else{
-#   load(file="../output/feature_train_pca.RData")
-#   load(file="../output/feature_test_pca.RData")
-# }
+```{r pca}
+# create PCA features from Yiwen's function
+source("../lib/feature_pca.R")
 
-# loading the pca features
-source("../output/feature_train_pca.RData")
-source("../output/feature_test_pca.RData")
+# train a PCA model
+tm_pca_feature <- system.time({model_pca <- feature_pca(dat_train)})
+
+# train both the training and test sets
+if(FALSE){
+feature_pca_train <- predict(model_pca, dat_train[, -6007])
+feature_pca_test <- predict(model_pca, dat_test[, -6007])
+
+save(feature_pca_train, file="../output/feature_pca_train.RData")
+save(feature_pca_test, file="../output/feature_pca_test.RData")
+}else{
+load(feature_pca_train, file="../output/feature_pca_train.RData")
+load(feature_pca_test, file="../output/feature_pca_test.RData")
+}
 
 ```
 
