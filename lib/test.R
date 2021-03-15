@@ -2,9 +2,18 @@
 ### Make predictions with test features ###
 ###########################################################
 
-test <- function(model, features, pred.type){
-  res <- predict(model, newx = features, type = pred.type)
-  return(res)
+test <- function(model, features, type){
+  if (type == "classes") {
+    pred <- predict_classes(model, features)
+    #reu <- 1-sum(pred !=  dat_test$label)/length(pred)
+  } else {
+    pred <- predict_proba(model, features)
+    #reu <- 1-sum(pred !=  dat_test$label)/length(pred)
+  }
+  
+  # pred <- predict_classes(model, features)
+  # reu <- 1-sum(pred !=  dat_test$label)/length(pred)
+  return(pred)
 }
 
 # This function is not necessary.
