@@ -1,3 +1,4 @@
+
 ---
 title: "Main"
 author: "Chengliang Tang, Yujie Wang, Diane Lu, Tian Zheng"
@@ -21,56 +22,24 @@ if(!require("R.matlab")){
 if(!require("readxl")){
   install.packages("readxl")
 }
-
 if(!require("dplyr")){
   install.packages("dplyr")
 }
 if(!require("readxl")){
   install.packages("readxl")
 }
-
 if(!require("ggplot2")){
   install.packages("ggplot2")
 }
-
 if(!require("caret")){
   install.packages("caret")
 }
-
 if(!require("glmnet")){
   install.packages("glmnet")
 }
-
 if(!require("WeightedROC")){
   install.packages("WeightedROC")
 }
-
-if(!require("gbm")){
-  install.packages("gbm")
-}
-
-if(!require("xgboost")){
-  install.packages("xgboost")
-}
-
-if(!require("caret")){
-  install.packages("caret")
-}
-
-# Install Miniconda (https://docs.conda.io/en/latest/miniconda.html)
-if(!require("keras")){
-  install.packages("keras")
-}
-
-if(!require("tensorflow")){
-  install.packages("tensorflow")
-  install_tensorflow()
-}
-
-use_condaenv("r-tensorflow")
-library(keras)
-library(tensorflow)
-
 library(R.matlab)
 library(readxl)
 library(dplyr)
@@ -79,9 +48,6 @@ library(ggplot2)
 library(caret)
 library(glmnet)
 library(WeightedROC)
-library(gbm)
-require(xgboost)
-library(caret)
 ```
 
 ### Step 0 set work directories
@@ -112,40 +78,19 @@ In this chunk, we have a set of controls for the evaluation experiments.
 + (T/F) process features for test set
 
 ```{r exp_setup}
-# run.cv <- TRUE # run cross-validation on the training set
-# sample.reweight <- TRUE # run sample reweighting in model training
-# K <- 5  # number of CV folds
-# run.feature.train <- TRUE # process features for training set
-# run.test <- TRUE # run evaluation on an independent test set
-# run.feature.test <- TRUE # process features for test set
-
+run.cv <- TRUE # run cross-validation on the training set
 sample.reweight <- TRUE # run sample reweighting in model training
 K <- 5  # number of CV folds
 run.feature.train <- TRUE # process features for training set
+run.test <- TRUE # run evaluation on an independent test set
 run.feature.test <- TRUE # process features for test set
-
-run.cv_gbm <- TRUE # run GBM cross-validation on the training set
-run.test_gbm <- TRUE # run GBM evaluation on an independent test set
-
-run.cv_xgboost <- TRUE # run DNN cross-validation on the training set
-run.test_xgboost <- TRUE # run DNN evaluation on an independent test set
-
-run.cv_dnn <- TRUE # run DNN cross-validation on the training set
-run.test_dnn <- TRUE # run DNN evaluation on an independent test set
 ```
 
-<!-- Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter lambda (the amount of shrinkage) for logistic regression with LASSO penalty. -->
-
-Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this part, we tune parameter n.trees and shrinkage for GBM.
+Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter lambda (the amount of shrinkage) for logistic regression with LASSO penalty.
 
 ```{r model_setup}
-# GBM parameters
-n.trees <- c(500, 100, 1500)
-shrinkage <- c(0.01, 0.05, 0.1)
-
-# XGBoost parameters
-eta <- c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5)
-colsample_bytree <- c(0.2, 0.5, 0.6, 0.7, 0.8, 0.9)
+lmbd = c(1e-3, 5e-3, 1e-2, 5e-2, 1e-1)
+model_labels = paste("LASSO Penalty with lambda =", lmbd)
 ```
 
 ### Step 2: import data and train-test split 
@@ -161,7 +106,6 @@ test_idx <- setdiff(info$Index, train_idx)
 If you choose to extract features from images, such as using Gabor filter, R memory will exhaust all images are read together. The solution is to repeat reading a smaller batch(e.g 100) and process them. 
 ```{r}
 n_files <- length(list.files(train_image_dir))
-
 image_list <- list()
 for(i in 1:100){
    image_list[[i]] <- readImage(paste0(train_image_dir, sprintf("%04d", i), ".jpg"))
@@ -176,7 +120,6 @@ Fiducial points are stored in matlab format. In this step, we read them and stor
 readMat.matrix <- function(index){
      return(round(readMat(paste0(train_pt_dir, sprintf("%04d", index), ".mat"))[[1]],0))
 }
-
 #load fiducial points
 fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
 save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
@@ -208,7 +151,6 @@ if(run.feature.train){
 }else{
   load(file="../output/feature_train.RData")
 }
-
 tm_feature_test <- NA
 if(run.feature.test){
   tm_feature_test <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
@@ -217,23 +159,20 @@ if(run.feature.test){
   load(file="../output/feature_test.RData")
 }
 
-# # PCA of features
-# source("../lib/feature_pca.R")
-# 
-# if(TRUE){
-#   tm_feature_train_pca <- system.time({feature_train_pca = as.matrix(feature_pca(dat_train));
-#   feature_test_pca = as.matrix(feature_pca(dat_test))
-#   })
-#   save(feature_train_pca, file="../output/feature_train_pca.RData")
-#   save(feature_test_pca, file="../output/feature_test_pca.RData")
-# }else{
-#   load(file="../output/feature_train_pca.RData")
-#   load(file="../output/feature_test_pca.RData")
-# }
+# PCA of features
+source("../lib/feature_pca.R")
 
+if(TRUE){
+  tm_feature_train_pca <- system.time({feature_train_pca = as.matrix(feature_pca(dat_train));
+  feature_test_pca = as.matrix(feature_pca(dat_test))
+  })
+  save(feature_train_pca, file="../output/feature_train_pca.RData")
+  save(feature_test_pca, file="../output/feature_test_pca.RData")
+}else{
+  load(file="../output/feature_train_pca.RData")
+  load(file="../output/feature_test_pca.RData")
+}
 ```
-
-### GBM
 
 ### Step 4: Train a classification model with training features and responses
 Call the train model and test model from library. 
@@ -248,82 +187,61 @@ Call the train model and test model from library.
   + Input: an R object that contains a trained classifier.
   + Output: training model specification
 
-+ In this part, we use GBM (baseline model) to do classification.
++ In this Starter Code, we use logistic regression with LASSO penalty to do classification. 
 
-```{r loadlib_gbm}
-source("../lib/train_gbm.R") 
-source("../lib/test_gbm.R")
+```{r loadlib}
+source("../lib/train.R") 
+source("../lib/test.R")
 ```
 
 #### Model selection with cross-validation
 * Do model selection by choosing among different values of training model parameters.
 
 ```{r runcv}
-source("../lib/cross_validation_gbm.R")
-feature_train = as.matrix(dat_train[, -6007])
-label_train = as.integer(dat_train$label)
-
-# DELETE
-save(feature_train, file="../output/feature_train_tmp_only.RData")
-save(label_train, file="../output/label_train_tmp_only.RData")
-# DELETE
-
-if(run.cv_gbm){
-  res_cv_gbm <- matrix(0, nrow = length(n.trees) * length(shrinkage), ncol = 6)
-  count = 0
-  for(i in 1:length(n.trees)){
-    for(j in 1:length(shrinkage)){
-      count = count + 1
-      cat("n.trees =", n.trees[i], "\n")
-      cat("shrinkage =", shrinkage[j], "\n")
-      
-      res_cv <- cv.function_gbm(features = feature_train, labels = label_train, K,
-                              n.trees[i], shrinkage[j], reweight = sample.reweight)
-      
-      res_cv_gbm[count,] <- c(n.trees[i], shrinkage[j], res_cv[1], res_cv[2], res_cv[3], res_cv[4])
-    }
+source("../lib/cross_validation.R")
+feature_train = as.matrix(feature_train_pca[, -6007])
+label_train = as.integer(dat_train$label) 
+if(run.cv){
+  res_cv <- matrix(0, nrow = length(lmbd), ncol = 4)
+  for(i in 1:length(lmbd)){
+    cat("lambda = ", lmbd[i], "\n")
+    res_cv[i,] <- cv.function(features = feature_train, labels = label_train, K, 
+                              l = lmbd[i], reweight = sample.reweight)
+  save(res_cv, file="../output/res_cv.RData")
   }
-  
-  colnames(res_cv_gbm) <- c("n.trees","shrinkage","mean_error", "sd_error", "mean_AUC", "sd_AUC")
-  save(res_cv_gbm, file="../output/res_cv_gbm.RData")
 }else{
-  load("../output/res_cv_gbm.RData")
+  load("../output/res_cv.RData")
 }
 ```
 
 Visualize cross-validation results. 
 ```{r cv_vis}
-res_cv_gbm <- as.data.frame(res_cv_gbm) 
-
-if(run.cv_gbm){
-  p1 <- res_cv_gbm %>% 
-    ggplot(aes(x = n.trees, y = mean_error,
+  
+res_cv <- as.data.frame(res_cv) 
+colnames(res_cv) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
+res_cv$k = as.factor(lmbd)
+if(run.cv){
+  p1 <- res_cv %>% 
+    ggplot(aes(x = as.factor(lmbd), y = mean_error,
                ymin = mean_error - sd_error, ymax = mean_error + sd_error)) + 
     geom_crossbar() +
-    facet_wrap(~shrinkage)+
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
   
-  p2 <- res_cv_gbm %>% 
-    ggplot(aes(x = n.trees, y = mean_AUC,
+  p2 <- res_cv %>% 
+    ggplot(aes(x = as.factor(lmbd), y = mean_AUC,
                ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
     geom_crossbar() +
-    facet_wrap(~shrinkage)+
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
   
   print(p1)
   print(p2)
 }
-
 ```
 
 
 * Choose the "best" parameter value
 ```{r best_model}
-# par_n.trees_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 1])
-# par_shrinkage_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 2])
-
-par_n.trees_best <- 500
-par_shrinkage_best <- 0.05
+par_best <- lmbd[which.min(res_cv$mean_error)] # lmbd[which.max(res_cv$mean_AUC)]
 ```
 
 * Train the model with the entire training set using the selected model (model parameter) via cross-validation.
@@ -333,23 +251,23 @@ weight_train <- rep(NA, length(label_train))
 for (v in unique(label_train)){
   weight_train[label_train == v] = 0.5 * length(label_train) / length(label_train[label_train == v])
 }
-
-tm_train <- NA
 if (sample.reweight){
-  tm_train <- system.time(fit_train <- train_gbm(feature_train, label_train, w = weight_train, par_n.trees_best, par_shrinkage_best))
+  tm_train <- system.time(fit_train <- train(feature_train, label_train, w = weight_train, par_best))
 } else {
-  tm_train <- system.time(fit_train <- train_gbm(feature_train, label_train, w = NULL, par_n.trees_best, par_shrinkage_best))
+  tm_train <- system.time(fit_train <- train(feature_train, label_train, w = NULL, par_best))
 }
-save(fit_train, file="../output/fit_train_gbm.RData")
+save(fit_train, file="../output/fit_train.RData")
 ```
 
 ### Step 5: Run test on test images
 ```{r test}
 tm_test = NA
-feature_test <- as.matrix(dat_test[, -6007])
-if(run.test_gbm){
-  load(file="../output/fit_train_gbm.RData")
-  tm_test <- system.time({prob_pred <- test_gbm(fit_train, feature_test, par_n.trees_best, pred.type = 'response');})
+feature_test <- as.matrix(feature_test_pca[, -6007])
+if(run.test){
+  load(file="../output/fit_train.RData")
+  # tm_test <- system.time({label_pred <- as.integer(test(fit_train, feature_test, pred.type = 'class')); 
+  #                         prob_pred <- test(fit_train, feature_test, pred.type = 'response')})
+  tm_test <- system.time(prob_pred <- test(fit_train, as.data.frame(feature_test_pca), pred.type = 'response'))
 }
 ```
 
@@ -358,12 +276,6 @@ if(run.test_gbm){
 ```{r}
 ## reweight the test data to represent a balanced label distribution
 label_test <- as.integer(dat_test$label)
-
-# DELETE
-save(feature_test, file="../output/feature_test_tmp_only.RData")
-save(label_test, file="../output/label_test_tmp_only.RData")
-# DELETE
-
 weight_test <- rep(NA, length(label_test))
 for (v in unique(label_test)){
   weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
@@ -375,448 +287,22 @@ label_test <- ifelse(label_test == 2, 1, 0)
 accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
 tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
 auc <- WeightedAUC(tpr.fpr)
-
-
-cat("The accuracy of model:", "GBM with n.trees =" , par_n.trees_best, "and shrinkage =", par_shrinkage_best, "is", accu*100, "%.\n")
-cat("The AUC of model:", "GBM with n.trees =" , par_n.trees_best, "and shrinkage =", par_shrinkage_best, "is", auc, ".\n")
-
-
+cat("The accuracy of model:", model_labels[which.min(res_cv$mean_error)], "is", accu*100, "%.\n")
+cat("The AUC of model:", model_labels[which.min(res_cv$mean_error)], "is", auc, ".\n")
 ```
 
 ### Summarize Running Time
 Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
 ```{r running_time}
-cat("Time for constructing training features=", tm_feature_train[3], "s \n")
-cat("Time for constructing testing features=", tm_feature_test[3], "s \n")
-cat("Time for training model=", tm_train[3], "s \n") 
-cat("Time for testing model=", tm_test[3], "s \n")
+cat("Time for constructing training features=", tm_feature_train[1], "s \n")
+cat("Time for constructing testing features=", tm_feature_test[1], "s \n")
+cat("Time for pca=", tm_feature_train_pca[1], "s \n")
+cat("Time for training model=", tm_train[1], "s \n") 
+cat("Time for testing model=", tm_test[1], "s \n")
 ```
-
-### XGBoost
-
-### Step 4: Train a classification model with training features and responses
-Call the train model and test model from library. 
-
-`train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
-
-+ `train.R`
-  + Input: a data frame containing features and labels and a parameter list.
-  + Output:a trained model
-+ `test.R`
-  + Input: the fitted classification model using training data and processed features from testing images 
-  + Input: an R object that contains a trained classifier.
-  + Output: training model specification
-
-+ In this part, we use GBM (baseline model) to do classification.
-
-```{r loadlib_xgboost}
-source("../lib/train_xgboost.R") 
-source("../lib/test_xgboost.R")
-```
-
-#### Model selection with cross-validation
-* Do model selection by choosing among different values of training model parameters.
-
-```{r runcv_xgboost}
-source("../lib/cross_validation_xgboost.R")
-feature_train = as.matrix(dat_train[, -6007])
-label_train = as.integer(dat_train$label)
-
-weight_train <- rep(NA, length(label_train))
-for (v in unique(label_train)){
-  weight_train[label_train == v] = 0.5 * length(label_train) / length(label_train[label_train == v])
-}
-
-if(run.cv_xgboost){
-  res_cv_xgboost <- matrix(0, nrow = length(eta) * length(colsample_bytree), ncol = 6)
-  count = 0
-  for(i in 1:length(eta)){
-    for(j in 1:length(colsample_bytree)){
-      count = count + 1
-      cat("eta =", eta[i], "\n")
-      cat("colsample_bytree =", colsample_bytree[j], "\n")
-      
-      res_cv <- cv.function_xgboost(feature_train, label_train, K
-                                    , eta[i], colsample_bytree[j], reweight = sample.reweight)
-      
-      res_cv_xgboost[count,] <- c(eta[i], colsample_bytree[j], res_cv[1], res_cv[2], res_cv[3], res_cv[4])
-    }
-  }
-  
-  colnames(res_cv_xgboost) <- c("eta","colsample_bytree","mean_error", "sd_error", "mean_AUC", "sd_AUC")
-  save(res_cv_xgboost, file="../output/res_cv_xgboost.RData")
-}else{
-  load("../output/res_cv_xgboost.RData")
-}
-```
-
-Visualize cross-validation results. 
-```{r cv_vis_xgboost}
-res_cv_xgboost <- as.data.frame(res_cv_xgboost) 
-
-if(run.cv_xgboost){
-  p1 <- res_cv_xgboost %>% 
-    ggplot(aes(x = eta, y = mean_error,
-               ymin = mean_error - sd_error, ymax = mean_error + sd_error)) + 
-    geom_crossbar() +
-    facet_wrap(~colsample_bytree)+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
-  p2 <- res_cv_xgboost %>% 
-    ggplot(aes(x = eta, y = mean_AUC,
-               ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
-    geom_crossbar() +
-    facet_wrap(~colsample_bytree)+
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
-  print(p1)
-  print(p2)
-}
-```
-
-
-* Choose the "best" parameter value
-```{r best_model_xgboost}
-# par_n.trees_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 1])
-# par_shrinkage_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 2])
-
-# par_eta_best <- 0.1
-# par_colsample_bytree_best <- 0.6
-
-# par_eta_best <- 0.05
-# par_colsample_bytree_best <- 0.2
-
-# eta <- c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5)
-# colsample_bytree <- c(0.2, 0.5, 0.6, 0.7, 0.8, 0.9)
-par_eta_best <- 0.3
-par_colsample_bytree_best <- 0.7
-```
-
-* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
-```{r final_train_xgboost}
-source("../lib/train_xgboost.R") 
-source("../lib/test_xgboost.R")
-
-# training weights
-weight_train <- rep(NA, length(label_train))
-for (v in unique(label_train)){
-  weight_train[label_train == v] = 0.5 * length(label_train) / length(label_train[label_train == v])
-}
-
-tm_train <- NA
-if (sample.reweight){
-  tm_train <- system.time(fit_train <- train_xgboost(feature_train, label_train, par_eta_best, par_colsample_bytree_best, sample.reweight))
-} else {
-  tm_train <- system.time(fit_train <- train_xgboost(feature_train, label_train, par_eta_best, par_colsample_bytree_best, NULL))
-}
-xgb.save(fit_train, "../output/fit_train_xgboost.model")
-```
-
-### Step 5: Run test on test images
-```{r test_xgboost}
-tm_test = NA
-feature_test <- as.matrix(dat_test[, -6007])
-if(run.test_xgboost){
-  fit_train <- xgb.load("../output/fit_train_xgboost.model")
-  tm_test <- system.time({prob_pred <- test_xgboost(fit_train, feature_test, pred.type = 'probability');})
-}
-```
-
-
-* evaluation
-```{r}
-## reweight the test data to represent a balanced label distribution
-label_test <- as.integer(dat_test$label)
-
-weight_test <- rep(NA, length(label_test))
-for (v in unique(label_test)){
-  weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
-}
-
-label_pred <- ifelse(prob_pred > 0.5, 1, 0)
-label_test <- ifelse(label_test == 2, 1, 0)
-
-accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
-tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
-auc <- WeightedAUC(tpr.fpr)
-
-
-cat("The accuracy of model:", "XGBoost with eta =" , par_eta_best, "and colsample_bytree =", par_colsample_bytree_best, "is", accu*100, "%.\n")
-cat("The AUC of model:", "XGBoost with eta =" , par_eta_best, "and colsample_bytree =", par_colsample_bytree_best, "is", auc, ".\n")
-
-
-```
-
-### Summarize Running Time
-Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
-```{r running_time_xgboost}
-cat("Time for constructing training features=", tm_feature_train[3], "s \n")
-cat("Time for constructing testing features=", tm_feature_test[3], "s \n")
-cat("Time for training model=", tm_train[3], "s \n") 
-cat("Time for testing model=", tm_test[3], "s \n")
-```
-
-### DNN
-
-### Step 4: Train a classification model with training features and responses
-Call the train model and test model from library. 
-
-`train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
-
-+ `train.R`
-  + Input: a data frame containing features and labels and a parameter list.
-  + Output:a trained model
-+ `test.R`
-  + Input: the fitted classification model using training data and processed features from testing images 
-  + Input: an R object that contains a trained classifier.
-  + Output: training model specification
-
-+ In this part, we use GBM (baseline model) to do classification.
-
-```{r loadlib_dnn}
-source("../lib/train_dnn.R") 
-source("../lib/test_dnn.R")
-```
-
-#### Model selection with cross-validation
-* Do model selection by choosing among different values of training model parameters.
-
-```{r runcv_dnn}
-source("../lib/cross_validation_dnn.R")
-feature_train = as.matrix(dat_train[, -6007])
-label_train = as.integer(dat_train$label)
-
-# if(run.cv_dnn){
-#   res_cv_dnn <- matrix(0, 1, ncol = 4)
-#   
-#   res_cv <- cv.function_dnn(features = feature_train, labels = label_train, K,
-#                           reweight = sample.reweight)
-#   
-#   res_cv_dnn[1,] <- c(res_cv[1], res_cv[2], res_cv[3], res_cv[4])
-#   
-#   colnames(res_cv_dnn) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
-#   save(res_cv_dnn, file="../output/res_cv_dnn.RData")
-# }else{
-#   load("../output/res_cv_dnn.RData")
-# }
-```
-
-Visualize cross-validation results. 
-```{r cv_vis_dnn}
-# res_cv_dnn <- as.data.frame(res_cv_dnn) 
-# 
-# if(run.cv_dnn){
-#   p1 <- res_cv_dnn %>% 
-#     ggplot(aes(x = "DNN", y = mean_error,
-#                ymin = mean_error - sd_error, ymax = mean_error + sd_error)) + 
-#     geom_crossbar() +
-#     theme(axis.text.x = element_text())
-#   
-#   p2 <- res_cv_dnn %>% 
-#     ggplot(aes(x = "DNN", y = mean_AUC,
-#                ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
-#     geom_crossbar() +
-#     theme(axis.text.x = element_text())
-#   
-#   print(p1)
-#   print(p2)
-# }
-
-```
-
-
-* Choose the "best" parameter value
-```{r best_model_dnn}
-# par_n.trees_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 1])
-# par_shrinkage_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 2])
-```
-
-* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
-```{r final_train_dnn}
-source("../lib/train_dnn.R") 
-source("../lib/test_dnn.R")
-
-feature_train = as.matrix(dat_train[, -6007])
-label_train = as.integer(dat_train$label)
-feature_test <- as.matrix(dat_test[, -6007])
-label_test <- as.integer(dat_test$label)
-label_test <- ifelse(label_test == 2, 1, 0)
-weight_test <- rep(NA, length(label_test))
-
-# training weights
-weight_train <- rep(NA, length(label_train))
-for (v in unique(label_train)){
-  weight_train[label_train == v] = 0.5 * length(label_train) / length(label_train[label_train == v])
-}
-
-for (v in unique(label_test)){
-  weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
-}
-
-# validation_split <- 1 / 5
-# validation_split <- 0
-tm_train <- NA
-if (sample.reweight){
-  tm_train <- system.time(fit_train <- train_dnn(feature_train, label_train, w = weight_train, feature_test, label_test, weight_test))
-} else {
-  tm_train <- system.time(fit_train <- train_dnn(feature_train, label_train, w = NULL, feature_test, label_test, weight_test = NULL))
-}
-save_model_hdf5(fit_train, "../output/fit_train_dnn.h5")
-```
-
-### Step 5: Run test on test images
-```{r test_dnn}
-tm_test = NA
-feature_test <- as.matrix(dat_test[, -6007])
-if(run.test_dnn){
-  fit_train <- load_model_hdf5("../output/fit_train_dnn.h5")
-  tm_test <- system.time({label_pred <- test_dnn(fit_train, feature_test, type = "predict_classes");
-   prob_pred <- test_dnn(fit_train, feature_test, type = "predict_proba")})
-}
-```
-
-
-* evaluation
-```{r}
-## reweight the test data to represent a balanced label distribution
-label_test <- as.integer(dat_test$label)
-
-weight_test <- rep(NA, length(label_test))
-for (v in unique(label_test)){
-  weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
-}
-
-label_test <- ifelse(label_test == 2, 1, 0)
-
-accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
-
-# prob_pred <- apply(prob_pred, 1, max)
-prob_pred <- prob_pred[, 2]
-
-tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
-auc <- WeightedAUC(tpr.fpr)
-
-
-cat("The accuracy of model:", "DNN", "is", accu*100, "%.\n")
-cat("The AUC of model:", "DNN", "is", auc, ".\n")
-
-
-```
-
-### Summarize Running Time
-Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
-```{r running_time_dnn}
-cat("Time for constructing training features=", tm_feature_train[3], "s \n")
-cat("Time for constructing testing features=", tm_feature_test[3], "s \n")
-cat("Time for training model=", tm_train[3], "s \n") 
-cat("Time for testing model=", tm_test[3], "s \n")
-```
-
-### LR
-
-### Step 4: Train a classification model with training features and responses
-Call the train model and test model from library. 
-
-`train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
-
-+ `train.R`
-  + Input: a data frame containing features and labels and a parameter list.
-  + Output:a trained model
-+ `test.R`
-  + Input: the fitted classification model using training data and processed features from testing images 
-  + Input: an R object that contains a trained classifier.
-  + Output: training model specification
-
-+ In this part, we use GBM (baseline model) to do classification.
-
-```{r}
-source("../lib/train_LR.R") 
-source("../lib/test_LR.R")
-```
-
-#### Model selection with cross-validation
-* Do model selection by choosing among different values of training model parameters.
-
-```{r runcv_LR}
-source("../lib/cross_validation_LR.R")
-feature_train = as.matrix(dat_train[, -6007])
-label_train = as.integer(dat_train$label)
-```
-
-* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
-```{r final_train_LR}
-# training weights
-weight_train <- rep(NA, length(label_train))
-for (v in unique(label_train)){
-  weight_train[label_train == v] = 0.5 * length(label_train) / length(label_train[label_train == v])
-}
-
-tm_train <- NA
-if (sample.reweight){
-  tm_train <- system.time(fit_train <- train_LR(feature_train, label_train, w = weight_train))
-} else {
-  tm_train <- system.time(fit_train <- train_gbm(feature_train, label_train))
-}
-save(fit_train, file="../output/fit_train_LR.RData")
-```
-
-### Step 5: Run test on test images
-```{r test_LR}
-tm_test = NA
-feature_test <- as.matrix(dat_test[, -6007])
-if(run.test_gbm){
-  load(file="../output/fit_train_LR.RData")
-  tm_test <- system.time({prob_pred <- test_gbm(fit_train, feature_test, pred.type = 'response');})
-}
-```
-
-
-* evaluation
-```{r}
-## reweight the test data to represent a balanced label distribution
-label_test <- as.integer(dat_test$label)
-
-# DELETE
-#save(feature_test, file="../output/feature_test_tmp_only.RData")
-#save(label_test, file="../output/label_test_tmp_only.RData")
-# DELETE
-
-weight_test <- rep(NA, length(label_test))
-for (v in unique(label_test)){
-  weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
-}
-
-label_pred <- ifelse(prob_pred > 0.5, 1, 0)
-label_test <- ifelse(label_test == 2, 1, 0)
-
-accu <- sum(weight_test * (label_pred == label_test)) / sum(weight_test)
-tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
-auc <- WeightedAUC(tpr.fpr)
-
-
-cat("The accuracy of model:", "LR is", accu*100, "%.\n")
-cat("The AUC of model:", "LR is", auc, ".\n")
-
-
-```
-
-### Summarize Running Time
-Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
-```{r running_time_LR}
-cat("Time for constructing training features=", tm_feature_train[3], "s \n")
-cat("Time for constructing testing features=", tm_feature_test[3], "s \n")
-cat("Time for training model=", tm_train[3], "s \n") 
-cat("Time for testing model=", tm_test[3], "s \n")
-```
-
-
 
 ###Reference
 - Du, S., Tao, Y., & Martinez, A. M. (2014). Compound facial expressions of emotion. Proceedings of the National Academy of Sciences, 111(15), E1454-E1462.
-
-
-
-
 
 
 

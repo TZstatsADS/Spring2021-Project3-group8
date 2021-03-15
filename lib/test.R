@@ -3,7 +3,7 @@
 ###########################################################
 
 test <- function(model, features, pred.type){
-  res <- predict(model, newx = features, type = pred.type)
+  res <- predict(model, newdata = features, type = pred.type)
   return(res)
 }
 
