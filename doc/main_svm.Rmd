@@ -1,0 +1,319 @@
+---
+title: "Main"
+author: "Chengliang Tang, Yujie Wang, Diane Lu, Tian Zheng"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+In your final repo, there should be an R markdown file that organizes **all computational steps** for evaluating your proposed Facial Expression Recognition framework. 
+
+This file is currently a template for running evaluation experiments. You should update it according to your codes but following precisely the same structure. 
+
+```{r, message=FALSE,warning=FALSE,error=FALSE}
+if(!require("EBImage")){
+  install.packages("BiocManager")
+  BiocManager::install("EBImage")
+}
+if(!require("R.matlab")){
+  install.packages("R.matlab")
+}
+if(!require("readxl")){
+  install.packages("readxl")
+}
+
+if(!require("dplyr")){
+  install.packages("dplyr")
+}
+if(!require("readxl")){
+  install.packages("readxl")
+}
+
+if(!require("ggplot2")){
+  install.packages("ggplot2")
+}
+
+if(!require("caret")){
+  install.packages("caret")
+}
+
+if(!require("glmnet")){
+  install.packages("glmnet")
+}
+
+if(!require("WeightedROC")){
+  install.packages("WeightedROC")
+}
+
+if(!require("gbm")){
+  install.packages("gbm")
+}
+
+if(!require("DMwR")){
+  install.packages("DMwR")
+}
+
+if(!require("formatR")){
+  install.packages("formatR")
+}
+
+if(!require("pROC")){
+  install.packages("pROC")
+}
+
+library(R.matlab)
+library(readxl)
+library(dplyr)
+library(EBImage)
+library(ggplot2)
+library(caret)
+library(glmnet)
+library(WeightedROC)
+library(gbm)
+library(grid)
+library(gridExtra)
+library(e1071)
+library(pROC)
+library(DMwR)
+library(formatR)
+```
+
+### Step 0 set work directories
+```{r wkdir, eval=FALSE}
+set.seed(2020)
+# setwd("~/Project3-FacialEmotionRecognition/doc")
+# here replace it with your own path or manually set it in RStudio to where this rmd file is located. 
+# use relative path for reproducibility
+```
+
+Provide directories for training images. Training images and Training fiducial points will be in different subfolders. 
+```{r}
+train_dir <- "../data/train_set/" # This will be modified for different data sets.
+train_image_dir <- paste(train_dir, "images/", sep="")
+train_pt_dir <- paste(train_dir,  "points/", sep="")
+train_label_path <- paste(train_dir, "label.csv", sep="") 
+```
+
+### Step 1: set up controls for evaluation experiments.
+
+In this chunk, we have a set of controls for the evaluation experiments. 
+
++ (T/F) cross-validation on the training set
++ (T/F) reweighting the samples for training set 
++ (number) K, the number of CV folds
++ (T/F) process features for training set
++ (T/F) run evaluation on an independent test set
++ (T/F) process features for test set
+
+```{r exp_setup}
+K <- 5  # number of CV folds
+#runpca <- FALSE
+
+run.fudicial.list <- TRUE
+run.feature.train <- TRUE
+run.feature.test <- TRUE
+
+
+run.cv.svm <-  TRUE # run cross-validation on the training set
+run.train.svm <- TRUE # process features for training set
+run.test.svm <- TRUE # run evaluation on an independent test set
+run.cv.pca <- TRUE # process features for test set
+```
+
+Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter lambda (the amount of shrinkage) for logistic regression with LASSO penalty.
+
+
+### Step 2: import data and train-test split 
+```{r}
+#train-test split
+info <- read.csv(train_label_path)
+n <- nrow(info)
+n_train <- round(n*(4/5), 0)
+train_idx <- sample(info$Index, n_train, replace = F)
+test_idx <- setdiff(info$Index, train_idx)
+```
+
+Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
+```{r read fiducial points}
+n_files <- length(list.files(train_image_dir))
+
+if (TRUE){
+  readMat.matrix <- function(index){
+       return(round(readMat(paste0(train_pt_dir, sprintf("%04d", index), ".mat"))[[1]],0))
+  }
+  
+  fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
+  save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
+  
+  # otherwise load the data stored for convenience
+} else {
+  load(file="../output/fiducial_pt_list.RData")
+}
+```
+
+### Step 3: construct features and responses
+
+```{r feature}
+source("../lib/feature.R")
+tm_feature_train <- NA
+if(TRUE){
+  tm_feature_train <- system.time(dat_train <- feature(fiducial_pt_list, train_idx))
+  save(dat_train, file="../output/feature_train.RData")
+}else{
+  load(file="../output/feature_train.RData")
+}
+
+tm_feature_test <- NA
+if(TRUE){
+  tm_feature_test <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
+  save(dat_test, file="../output/feature_test.RData")
+}else{
+  load(file="../output/feature_test.RData")
+}
+
+```
+
+
+
+
+
+### Step 4: SVM
+Call the train model and test model from library. 
+
+`train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
+
++ `train.R`
+  + Input: a data frame containing features and labels and a parameter list.
+  + Output:a trained model
++ `test.R`
+  + Input: the fitted classification model using training data and processed features from testing images 
+  + Input: an R object that contains a trained classifier.
+  + Output: training model specification
+
++ In this Starter Code, we use logistic regression with LASSO penalty to do classification. 
+
+#### Model selection with cross-validation
+* Do model selection by choosing among different values of training model parameters.
+```{r}
+source("../lib/cross_validation_svm.R")
+
+```
+
+```{r runcv, message=FALSE, warning=FALSE}
+cost = c(0.02,0.04,0.06,0.08,0.1)
+
+feature_train = as.matrix(dat_train[,-6007])
+label_train = as.integer(dat_train$label)
+
+if(FALSE){
+  res_cv_svm <- matrix(0, nrow = length(cost), ncol = 4)
+  for(i in 1:length(cost)){
+    cat("Cost = ", hyper_grid_svm$svm.cost[i], "\n")
+    
+    res_cv_svm[i,] <- cv.function(features = feature_train, labels = label_train, K=5, cost[i])
+    save(res_cv_svm, file="../output/res_cv_svm.RData")
+  }
+  
+}else{
+  load("../output/res_cv_svm.RData")
+}
+```
+
+Visualize cross-validation results. 
+```{r cv_vis}
+  
+res_cv_svm <- as.data.frame(res_cv_svm) 
+colnames(res_cv_svm) <- c("mean_error", "sd_error","mean_AUC","sd_AUC")
+res_cv_svm$k = as.factor(cost)
+
+p1 <- res_cv_svm %>%
+  ggplot(aes(x = cost, y = mean_error,
+              ymin = mean_error - sd_error, ymax = mean_error + sd_error)) +
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean error for SVM",y="mean error", x="cost")
+p2 <- res_cv_svm %>%
+  ggplot(aes(x = cost, y = mean_AUC,
+              ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) +
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean AUC for SVM", y="mean AUC", x="nprinciple")
+grid.arrange(p1, p2, nrow=2)
+
+
+```
+
+
+* Choose the "best" parameter value
+```{r best_model}
+par_best <- cost[which.min(res_cv_svm[,1])] # lmbd[which.max(res_cv$mean_AUC)]
+```
+
+* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
+```{r final_train}
+# training weights
+
+
+if(TRUE){
+
+  tm_train_svm <- system.time(fit_train_svm <- svm(label ~., data = dat_train, kernel = "linear", cost = par_best)) 
+
+  save(fit_train_svm, file="../output/fit_train_svm.RData")
+  
+}else{
+  load(file="../output/fit_train_svm.RData")
+
+}
+
+```
+
+
+### Step 5: Run test on test images
+```{r test}
+if(TRUE){
+  load(file="../output/fit_train_svm.RData")
+
+  tm_test_svm <- system.time(pred_svm <- predict(fit_train_svm, dat_test))
+}
+```
+
+
+* evaluation
+```{r,message=FALSE}
+
+accu_svm <- mean(dat_test$label == pred_svm)
+real_label = dat_test$label %>% as.character() %>% as.numeric()
+pred_value_svm  = pred_svm %>% as.character() %>% as.numeric()
+
+
+
+cat("The accuracy is: ", accu_svm*100, "%.\n")
+cat("The AUC is", roc(pred_value_svm, real_label)$auc, ".\n")
+
+
+```
+
+### Summarize Running Time
+Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
+```{r running_time}
+cat("Time for training model=", tm_train_svm[1], "s \n") 
+cat("Time for testing model=", tm_test_svm[1], "s \n")
+```
+
+###Reference
+- Du, S., Tao, Y., & Martinez, A. M. (2014). Compound facial expressions of emotion. Proceedings of the National Academy of Sciences, 111(15), E1454-E1462.
+
+
+
+
+
+
+
+
+
+
+
+
+
