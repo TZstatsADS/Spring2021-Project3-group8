@@ -1,0 +1,29 @@
+---
+title: "Test-Main - to be run on due date: Wednesday, March 17th 2021"
+author: "Amir Idris"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+Load baseline and advanced model
+```{r}
+load(file="../output/fit_train_gbm.RData")
+baseline.mod <- fit_train
+
+load(file="../output/fit_train_rf_pca.RData")
+advanced.mod <- fit_train_rf_pca
+```
+
+Load input test data
+```{r}
+test_data_path <- ""  #To be filled in on due date
+test_data <- read.csv(test_data_path)
+```
+
+
+```{r}
+
+```
+
+

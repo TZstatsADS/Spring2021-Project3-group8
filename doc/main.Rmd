@@ -117,12 +117,6 @@ In this chunk, we have a set of controls for the evaluation experiments.
 + (T/F) process features for test set
 
 ```{r exp_setup}
-# run.cv <- TRUE # run cross-validation on the training set
-# sample.reweight <- TRUE # run sample reweighting in model training
-# K <- 5  # number of CV folds
-# run.feature.train <- TRUE # process features for training set
-# run.test <- TRUE # run evaluation on an independent test set
-# run.feature.test <- TRUE # process features for test set
 sample.reweight <- TRUE # run sample reweighting in model training
 K <- 5  # number of CV folds
 run.feature.train <- TRUE # process features for training set
@@ -144,9 +138,6 @@ Using cross-validation or independent test set evaluation, we compare the perfor
 # GBM parameters
 n.trees <- c(500, 100, 1500)
 shrinkage <- c(0.01, 0.05, 0.1)
-# XGBoost parameters
-eta <- c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5)
-colsample_bytree <- c(0.2, 0.5, 0.6, 0.7, 0.8, 0.9)
 ```
 
 Subsequently, I identify the following hyperparameters to tune the random forest model.
