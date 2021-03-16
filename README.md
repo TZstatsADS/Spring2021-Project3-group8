@@ -24,9 +24,9 @@ Catherine Gao performed research on potential advance models to optimize perform
 
 Eve Wsahington assisted in researching advanced models, focusing on the theory behind the CNN model and alternatives to fiduciary point comparison. She implemented this research by desgining, training, and testing the CNN model. She also helped to validate the results of the Random Forecast model for the presentation preparation. 
 
-Ruize Yu
+Ruize Yu built the SVM advanced model, attended all team meetings and participated in team discussions. Ruize is the presenter for our group. 
 
-Yiwen Fang
+Yiwen Fang investigated/wrote codes of GBM, XGBoost, DNN models in .Rmd, wrote PCA functions, helped with code review/debug for SVM model/cross-validation functions. Also, read/summarized past work/online materials to provide clues to find potential candidates from tens of models, explained/shared machine learning concepts with teammates during meetings.
 
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
