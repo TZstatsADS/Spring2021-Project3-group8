@@ -10,7 +10,7 @@ In your final repo, there should be an R markdown file that organizes **all comp
 
 This file is currently a template for running evaluation experiments. You should update it according to your codes but following precisely the same structure. 
 
-```{r message=FALSE}
+```{r message=FALSE, warning = FALSE, echo = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
 if(!require("EBImage")){
   install.packages("BiocManager")
   BiocManager::install("EBImage")
@@ -57,6 +57,23 @@ if(!require("tensorflow")){
   install_tensorflow()
 }
 use_condaenv("r-tensorflow")
+
+packages.used <- c("R.matlab","readxl", "dplyr", "ggplot2", "caret","pROC","randomForest", "magrittr", "e1071","grid","gridExtra", "ROSE", "DMwR")
+# check packages that need to be installed.
+packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
+# install additional packages
+if(length(packages.needed) > 0){
+   install.packages(packages.needed, dependencies = TRUE)
+}
+library(pROC)
+library(randomForest)
+library(magrittr)   
+library(e1071)
+library(grid)
+library(gridExtra)
+library(ROSE)
+library(DMwR)
+
 library(keras)
 library(tensorflow)
 library(R.matlab)
@@ -112,23 +129,32 @@ run.feature.train <- TRUE # process features for training set
 run.feature.test <- TRUE # process features for test set
 run.cv_gbm <- TRUE # run GBM cross-validation on the training set
 run.test_gbm <- TRUE # run GBM evaluation on an independent test set
-run.cv_xgboost <- TRUE # run DNN cross-validation on the training set
-run.test_xgboost <- TRUE # run DNN evaluation on an independent test set
-run.cv_dnn <- TRUE # run DNN cross-validation on the training set
-run.test_dnn <- TRUE # run DNN evaluation on an independent test set
+
+run.fudicial.list <- FALSE
+run.cv.rf <- FALSE # run cross-validation on the training set for random forest 
+run.train.rf <- FALSE # run evaluation on entire train set
+run.test.rf <- TRUE # run evaluation on an independent test set
 ```
 
 <!-- Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter lambda (the amount of shrinkage) for logistic regression with LASSO penalty. -->
 
 Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this part, we tune parameter n.trees and shrinkage for GBM.
 
-```{r model_setup}
+```{r model_setup_gbm}
 # GBM parameters
 n.trees <- c(500, 100, 1500)
 shrinkage <- c(0.01, 0.05, 0.1)
 # XGBoost parameters
 eta <- c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5)
 colsample_bytree <- c(0.2, 0.5, 0.6, 0.7, 0.8, 0.9)
+```
+
+Subsequently, I identify the following hyperparameters to tune the random forest model.
+
+```{r model_setup_RF}
+hyper_grid_rf <- expand.grid(
+  ntree = c(200, 500, 800, 1000),
+  mtry = c(20,50))
 ```
 
 ### Step 2: import data and train-test split 
@@ -196,19 +222,25 @@ if(run.feature.test){
 }else{
   load(file="../output/feature_test.RData")
 }
-# # PCA of features
-# source("../lib/feature_pca.R")
-# 
-# if(TRUE){
-#   tm_feature_train_pca <- system.time({feature_train_pca = as.matrix(feature_pca(dat_train));
-#   feature_test_pca = as.matrix(feature_pca(dat_test))
-#   })
-#   save(feature_train_pca, file="../output/feature_train_pca.RData")
-#   save(feature_test_pca, file="../output/feature_test_pca.RData")
-# }else{
-#   load(file="../output/feature_train_pca.RData")
-#   load(file="../output/feature_test_pca.RData")
-# }
+```
+
+We will train a PCA model with the training set to use with RF, then apply the same PCA model to the testing set. 
+
+```{r pca}
+# create PCA features from Yiwen's function
+source("../lib/feature_pca.R")
+# train a PCA model
+tm_pca_feature <- system.time({model_pca <- feature_pca(dat_train)})
+# train both the training and test sets
+if(FALSE){
+feature_pca_train <- predict(model_pca, dat_train[, -6007])
+feature_pca_test <- predict(model_pca, dat_test[, -6007])
+save(feature_pca_train, file="../output/feature_pca_train.RData")
+save(feature_pca_test, file="../output/feature_pca_test.RData")
+}else{
+load(feature_pca_train, file="../output/feature_pca_train.RData")
+load(feature_pca_test, file="../output/feature_pca_test.RData")
+}
 ```
 
 ### GBM
@@ -357,6 +389,124 @@ cat("Time for testing model=", tm_test[3], "s \n")
 ```
 
 
+## Random Forest
+
+### Step 4: Train a classification model with training features and responses
+
+Call the train_rf model and test_rf model from library. 
+
+```{r loadlib_rf, echo=FALSE}
+source("../lib/train_rf.R") 
+source("../lib/test_rf.R")
+source("../lib/cross_validation_rf.R")
+```
+
+#### Model selection with cross-validation
+
+* Do model selection by choosing among different values of training model parameters.
+
+I cross-validate hyperparameter "ntrees" and "mtry" with 5-fold validation to identify the combination that gives the highest AUC and lowest error.
+
++ ntree: the default value for ntree is 500, so I'm choosing numbers below and above the default to test for results. The chosen ntree is: 200, 500, 800, 1000.  
+
++ mtry: the default value for mtry is 500, however, from experience, the smaller mtry will generate better results. Therefore, I pick 20 and 50 for tuning 
+
+```{r runcv_rf}
+# split features and labels
+feature_train = as.matrix(feature_pca_train)
+label_train = dat_train$label
+# run cross-validation
+if(run.cv.rf){
+  res_cv_rf_pca <- matrix(0, nrow = nrow(hyper_grid_rf), ncol = 4)
+  for (i in 1:nrow(hyper_grid_rf)){
+    print(hyper_grid_rf$ntree[i])
+    print(hyper_grid_rf$mtry[i])
+    
+    res_cv_rf_pca[i,] <- cv.function_rf(features = feature_train, 
+                             labels = label_train, 
+                             K,
+                             ntree = hyper_grid_rf$ntree[i],
+                             mtry = hyper_grid_rf$mtry[i])
+  }
+  save(res_cv_rf_pca, file="../output/res_cv_rf_pca.RData")
+}else{
+  load("../output/res_cv_rf_pca.RData")
+}
+```
+
+
+* Visualize cross-validation results. 
+
+```{r cv_vis_rf_pca, out.width = "65%",fig.align = 'center',echo=FALSE}
+res_cv_rf_pca <- as.data.frame(res_cv_rf_pca) 
+colnames(res_cv_rf_pca) <- c("mean_error", "sd_error", "mean_AUC", "sd_AUC")
+p1 <- res_cv_rf_pca %>% mutate(
+  mean_error_true = 1- mean_error , sd_error_true = sd(mean_error_true))%>%
+  ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_error_true,
+             ymin = mean_error_true - sd_error, ymax = mean_error_true + sd_error )) + 
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean Error for RF", y="mean error", x="ntrees")
+  
+p2 <- res_cv_rf_pca %>% 
+  ggplot(aes(x = as.factor(hyper_grid_rf$ntree), y = mean_AUC,
+             ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) + 
+  geom_crossbar() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))+
+  labs(title="Mean AUC for RF", y="mean AUC", x="ntrees")
+grid.arrange(p1, p2, nrow=2)
+```
+
+* Choose the "best" parameter value
+
+```{r best_model_rf_pca}
+tree_best_pca <- hyper_grid_rf$ntree[which.max(res_cv_rf_pca$mean_AUC)]
+mtry_best_pca <- hyper_grid_rf$mtry[which.max(res_cv_rf_pca$mean_AUC)]
+```
+
+* Train the model with the entire training set using the selected model (model parameter) via cross-validation.
+
+```{r final_train_rf_pca}
+if (run.train.rf) {
+  tm_train_rf_pca <- system.time(fit_train_rf_pca <- train_rf(feature_train, label_train, ntree = tree_best_pca, mtry = mtry_best_pca))
+save(fit_train_rf_pca, tm_train_rf_pca, file="../output/fit_train_rf_pca.RData")
+} else {
+  load(file="../output/fit_train_rf_pca.RData")
+}
+```
+
+### Step 5: Run test on test images
+
+```{r test_rf_pca}
+tm_test_rf_pca = NA
+feature_test <- as.matrix(feature_pca_test)
+label_test <- dat_test$label
+if(run.test.rf){
+  load(file="../output/fit_train_rf_pca.RData")
+  tm_test_rf_pca <- system.time(label_pred <- as.integer(predict(fit_train_rf_pca, feature_test)))
+}
+```
+
+#### Evaluation
+
+```{r evaluation_rf_pca, echo=FALSE}
+accu_rf = mean(label_pred == as.integer(label_test))
+auc_rf <- roc(label_pred, as.integer(label_test))$auc
+```
+```{r result_rf_pca,echo=FALSE}
+cat("The unweighted accuracy of the random forest model is ", accu_rf*100, "%.\n")
+cat("The unweighted AUC of the random forest model is ", auc_rf, ".\n")
+```
+
+#### Summarize Running Time
+
+Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
+
+```{r running_time_rf_pca, echo = FALSE}
+cat("Time for training random forest model=", tm_train_rf_pca[1], "s \n") 
+cat("Time for testing random forest model=", tm_test_rf_pca[1], "s \n")
+
+```
 
 ###Reference
 - Du, S., Tao, Y., & Martinez, A. M. (2014). Compound facial expressions of emotion. Proceedings of the National Academy of Sciences, 111(15), E1454-E1462.
