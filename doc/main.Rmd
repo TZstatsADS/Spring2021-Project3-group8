@@ -117,19 +117,14 @@ In this chunk, we have a set of controls for the evaluation experiments.
 + (T/F) process features for test set
 
 ```{r exp_setup}
-# run.cv <- TRUE # run cross-validation on the training set
-# sample.reweight <- TRUE # run sample reweighting in model training
-# K <- 5  # number of CV folds
-# run.feature.train <- TRUE # process features for training set
-# run.test <- TRUE # run evaluation on an independent test set
-# run.feature.test <- TRUE # process features for test set
+
 sample.reweight <- TRUE # run sample reweighting in model training
 K <- 5  # number of CV folds
-run.feature.train <- TRUE # process features for training set
-run.feature.test <- TRUE # process features for test set
-run.cv_gbm <- TRUE # run GBM cross-validation on the training set
+run.feature.train <- FALSE # process features for training set
+run.feature.test <- FALSE # process features for test set
+run.cv_gbm <- FALSE # run GBM cross-validation on the training set
 run.test_gbm <- TRUE # run GBM evaluation on an independent test set
-
+train.pca <- FALSE
 run.fudicial.list <- FALSE
 run.cv.rf <- FALSE # run cross-validation on the training set for random forest 
 run.train.rf <- FALSE # run evaluation on entire train set
@@ -229,14 +224,16 @@ We will train a PCA model with the training set to use with RF, then apply the s
 ```{r pca}
 # create PCA features from Yiwen's function
 source("../lib/feature_pca.R")
+if(train.pca){
+  
 # train a PCA model
 tm_pca_feature <- system.time({model_pca <- feature_pca(dat_train)})
 # train both the training and test sets
-if(FALSE){
 feature_pca_train <- predict(model_pca, dat_train[, -6007])
 feature_pca_test <- predict(model_pca, dat_test[, -6007])
 save(feature_pca_train, file="../output/feature_pca_train.RData")
 save(feature_pca_test, file="../output/feature_pca_test.RData")
+
 }else{
 load(feature_pca_train, file="../output/feature_pca_train.RData")
 load(feature_pca_test, file="../output/feature_pca_test.RData")
@@ -272,10 +269,7 @@ source("../lib/test_gbm.R")
 source("../lib/cross_validation_gbm.R")
 feature_train = as.matrix(dat_train[, -6007])
 label_train = as.integer(dat_train$label)
-# DELETE
-save(feature_train, file="../output/feature_train_tmp_only.RData")
-save(label_train, file="../output/label_train_tmp_only.RData")
-# DELETE
+
 if(run.cv_gbm){
   res_cv_gbm <- matrix(0, nrow = length(n.trees) * length(shrinkage), ncol = 6)
   count = 0
@@ -323,7 +317,7 @@ if(run.cv_gbm){
 ```
 
 
-* Choose the "best" parameter value
+* Choose the "best" parameter value ADD A JUSTIFICAION HERE
 ```{r best_model}
 # par_n.trees_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 1])
 # par_shrinkage_best <- as.numeric(res_cv_gbm[which.min(res_cv_gbm$mean_error), 2])
@@ -362,10 +356,7 @@ if(run.test_gbm){
 ```{r}
 ## reweight the test data to represent a balanced label distribution
 label_test <- as.integer(dat_test$label)
-# DELETE
-save(feature_test, file="../output/feature_test_tmp_only.RData")
-save(label_test, file="../output/label_test_tmp_only.RData")
-# DELETE
+
 weight_test <- rep(NA, length(label_test))
 for (v in unique(label_test)){
   weight_test[label_test == v] = 0.5 * length(label_test) / length(label_test[label_test == v])
@@ -454,7 +445,7 @@ p2 <- res_cv_rf_pca %>%
   geom_crossbar() +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))+
   labs(title="Mean AUC for RF", y="mean AUC", x="ntrees")
-grid.arrange(p1, p2, nrow=2)
+grid.arrange(p1, p2, nrow=1)
 ```
 
 * Choose the "best" parameter value
@@ -509,6 +500,7 @@ cat("Time for testing random forest model=", tm_test_rf_pca[1], "s \n")
 ```
 
 ###Reference
+
 - Du, S., Tao, Y., & Martinez, A. M. (2014). Compound facial expressions of emotion. Proceedings of the National Academy of Sciences, 111(15), E1454-E1462.
 
 
