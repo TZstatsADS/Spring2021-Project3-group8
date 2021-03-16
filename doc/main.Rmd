@@ -52,6 +52,10 @@ if(!require("tensorflow")){
   install.packages("tensorflow")
 }
 
+if(!require("magick")){
+  install.packages("magick")
+}
+
 
 library(R.matlab)
 library(readxl)
@@ -63,6 +67,7 @@ library(glmnet)
 library(WeightedROC)
 library(tensorflow)
 library(keras)
+library(magick)
 
 ```
 
@@ -180,6 +185,64 @@ if(run.feature.test){
 
 
 ```
+
+# create a modified image list
+```{r}
+
+img <- readImage(paste0(train_image_dir, sprintf("%04d", 1), ".jpg"))
+print(img)
+
+setwd(train_image_dir)
+
+img.face <- sample(dir())
+
+imgs <- list(NULL)
+values<- list(NULL)
+index <- list(NULL)
+
+for(i in 1:length(img.face)){ 
+  imgs[[i]]<- readImage(img.face[i])
+  values[i] <- info$label[as.numeric(substr(img.face[i], 1, 4))]
+  index[i] <- as.numeric(substr(img.face[i], 1, 4))
+  
+  #modify images
+  imgs[[i]]<- resize(imgs[[i]], 100, 100)
+} 
+
+```
+create training tensors for kerasim
+
+```{r}
+allimagesmod <- data.frame(index, imgs, values)
+
+```
+
+```{r }
+
+source("../lib/feature.R")
+
+tm_feature_train <- NA
+
+if(run.feature.train){
+  tm_feature_train <- system.time(dat_train <- feature(fiducial_pt_list, train_idx))
+  save(dat_train, file="../output/feature_train.RData")
+}else{
+  load(file="../output/feature_train.RData")
+}
+
+tm_feature_test <- NA
+
+if(run.feature.test){
+  tm_feature_test <- system.time(dat_test <- feature(fiducial_pt_list, test_idx))
+  save(dat_test, file="../output/feature_test.RData")
+}else{
+  load(file="../output/feature_test.RData")
+}
+
+
+
+```
+
 
 ## CNN
 

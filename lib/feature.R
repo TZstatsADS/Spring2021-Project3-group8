@@ -27,7 +27,7 @@ featuretest <- function(input_list = image_list, index){
 
 
 
-featue <- function(input_list = image_list, index){
+feature <- function(input_list = fiducial_pt_list, index){
   
   ### Construct process features for training images 
   
