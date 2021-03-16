@@ -22,7 +22,7 @@ Amir Idris organized group meetings, attempted to rework the logistic regression
 
 Catherine Gao performed research on potential advance models to optimize performance. She constructed the skeleton code for Random Forest by training the model with different sets of hyperparameters. She also further improved the model by implementing ROSE and PCA to create the best advance model with the highest testing accuracy and testing AUC. Catherine als prepared the README file in Github. 
 
-Eve Wsahington assisted in researching advanced models, focusing on the theory behind the CN model and alternatives to fiduciary point comparison. She implemented this research by desgining, training, and testing the CNN model. She also helped to validate the results of the Random Forecast model for the presentation preparation. 
+Eve Wsahington assisted in researching advanced models, focusing on the theory behind the CNN model and alternatives to fiduciary point comparison. She implemented this research by desgining, training, and testing the CNN model. She also helped to validate the results of the Random Forecast model for the presentation preparation. 
 
 Ruize Yu
 
