@@ -21,9 +21,41 @@ test_data_path <- ""  #To be filled in on due date
 test_data <- read.csv(test_data_path)
 ```
 
-
+Get predictions from GBM
 ```{r}
+source("../lib/test_gbm.R")
+par_n.trees_best <- 500
+par_shrinkage_best <- 0.05
 
+prob_pred <- test_gbm(baseline.mod, test_data, par_n.trees_best, pred.type = 'response')
+label_pred_gbm <- ifelse(prob_pred > 0.5, 1, 0)
 ```
+
+Get predictions from Random Forest
+```{r}
+source("../lib/test_rf.R")
+
+feature_test <- as.matrix(test_data)
+label_pred_rf <- as.integer(predict(advanced.mod, feature_test))
+```
+
+Save predictions from models
+```{r}
+predictions <- cbind(label_pred_gbm, label_pred_rf)
+predictions <- as.data.frame(predictions)
+colnames(predictions) <- c("baseline_predictions", "advanced_predictions")
+write.csv(predictions, "../output/test_results.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
 
 

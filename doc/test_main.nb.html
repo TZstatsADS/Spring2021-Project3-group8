@@ -1760,13 +1760,44 @@ test_data &lt;- read.csv(test_data_path)</code></pre>
 <!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
+<p>Get predictions from GBM</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc291cmNlKFwiLi4vbGliL3Rlc3RfZ2JtLlJcIilcbnBhcl9uLnRyZWVzX2Jlc3QgPC0gNTAwXG5wYXJfc2hyaW5rYWdlX2Jlc3QgPC0gMC4wNVxuXG5wcm9iX3ByZWQgPC0gdGVzdF9nYm0oYmFzZWxpbmUubW9kLCB0ZXN0X2RhdGEsIHBhcl9uLnRyZWVzX2Jlc3QsIHByZWQudHlwZSA9ICdyZXNwb25zZScpXG5sYWJlbF9wcmVkX2dibSA8LSBpZmVsc2UocHJvYl9wcmVkID4gMC41LCAxLCAwKVxuYGBgIn0= -->
+<pre class="r"><code>source(&quot;../lib/test_gbm.R&quot;)
+par_n.trees_best &lt;- 500
+par_shrinkage_best &lt;- 0.05
+
+prob_pred &lt;- test_gbm(baseline.mod, test_data, par_n.trees_best, pred.type = &#39;response&#39;)
+label_pred_gbm &lt;- ifelse(prob_pred &gt; 0.5, 1, 0)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Get predictions from Random Forest</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc291cmNlKFwiLi4vbGliL3Rlc3RfcmYuUlwiKVxuXG5mZWF0dXJlX3Rlc3QgPC0gYXMubWF0cml4KHRlc3RfZGF0YSlcbmxhYmVsX3ByZWRfcmYgPC0gYXMuaW50ZWdlcihwcmVkaWN0KGFkdmFuY2VkLm1vZCwgZmVhdHVyZV90ZXN0KSlcbmBgYCJ9 -->
+<pre class="r"><code>source(&quot;../lib/test_rf.R&quot;)
+
+feature_test &lt;- as.matrix(test_data)
+label_pred_rf &lt;- as.integer(predict(advanced.mod, feature_test))</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+<p>Save predictions from models</p>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucHJlZGljdGlvbnMgPC0gY2JpbmQobGFiZWxfcHJlZF9nYm0sIGxhYmVsX3ByZWRfcmYpXG5wcmVkaWN0aW9ucyA8LSBhcy5kYXRhLmZyYW1lKHByZWRpY3Rpb25zKVxuY29sbmFtZXMocHJlZGljdGlvbnMpIDwtIGMoXCJiYXNlbGluZV9wcmVkaWN0aW9uc1wiLCBcImFkdmFuY2VkX3ByZWRpY3Rpb25zXCIpXG53cml0ZS5jc3YocHJlZGljdGlvbnMsIFwiLi4vb3V0cHV0L3Rlc3RfcmVzdWx0cy5jc3ZcIilcbmBgYCJ9 -->
+<pre class="r"><code>predictions &lt;- cbind(label_pred_gbm, label_pred_rf)
+predictions &lt;- as.data.frame(predictions)
+colnames(predictions) &lt;- c(&quot;baseline_predictions&quot;, &quot;advanced_predictions&quot;)
+write.csv(predictions, &quot;../output/test_results.csv&quot;)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiVGVzdC1NYWluIC0gdG8gYmUgcnVuIG9uIGR1ZSBkYXRlOiBXZWRuZXNkYXksIE1hcmNoIDE3dGggMjAyMSIKYXV0aG9yOiAiQW1pciBJZHJpcyIKb3V0cHV0OgogIHBkZl9kb2N1bWVudDogZGVmYXVsdAogIGh0bWxfbm90ZWJvb2s6IGRlZmF1bHQKLS0tCgpMb2FkIGJhc2VsaW5lIGFuZCBhZHZhbmNlZCBtb2RlbApgYGB7cn0KbG9hZChmaWxlPSIuLi9vdXRwdXQvZml0X3RyYWluX2dibS5SRGF0YSIpCmJhc2VsaW5lLm1vZCA8LSBmaXRfdHJhaW4KCmxvYWQoZmlsZT0iLi4vb3V0cHV0L2ZpdF90cmFpbl9yZl9wY2EuUkRhdGEiKQphZHZhbmNlZC5tb2QgPC0gZml0X3RyYWluX3JmX3BjYQpgYGAKCkxvYWQgaW5wdXQgdGVzdCBkYXRhCmBgYHtyfQp0ZXN0X2RhdGFfcGF0aCA8LSAiIiAgI1RvIGJlIGZpbGxlZCBpbiBvbiBkdWUgZGF0ZQp0ZXN0X2RhdGEgPC0gcmVhZC5jc3YodGVzdF9kYXRhX3BhdGgpCmBgYAoKCmBgYHtyfQoKYGBgCgoK</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVGVzdC1NYWluIC0gdG8gYmUgcnVuIG9uIGR1ZSBkYXRlOiBXZWRuZXNkYXksIE1hcmNoIDE3dGggMjAyMSIKYXV0aG9yOiAiQW1pciBJZHJpcyIKb3V0cHV0OgogIHBkZl9kb2N1bWVudDogZGVmYXVsdAogIGh0bWxfbm90ZWJvb2s6IGRlZmF1bHQKLS0tCgpMb2FkIGJhc2VsaW5lIGFuZCBhZHZhbmNlZCBtb2RlbApgYGB7cn0KbG9hZChmaWxlPSIuLi9vdXRwdXQvZml0X3RyYWluX2dibS5SRGF0YSIpCmJhc2VsaW5lLm1vZCA8LSBmaXRfdHJhaW4KCmxvYWQoZmlsZT0iLi4vb3V0cHV0L2ZpdF90cmFpbl9yZl9wY2EuUkRhdGEiKQphZHZhbmNlZC5tb2QgPC0gZml0X3RyYWluX3JmX3BjYQpgYGAKCkxvYWQgaW5wdXQgdGVzdCBkYXRhCmBgYHtyfQp0ZXN0X2RhdGFfcGF0aCA8LSAiIiAgI1RvIGJlIGZpbGxlZCBpbiBvbiBkdWUgZGF0ZQp0ZXN0X2RhdGEgPC0gcmVhZC5jc3YodGVzdF9kYXRhX3BhdGgpCmBgYAoKR2V0IHByZWRpY3Rpb25zIGZyb20gR0JNCmBgYHtyfQpzb3VyY2UoIi4uL2xpYi90ZXN0X2dibS5SIikKcGFyX24udHJlZXNfYmVzdCA8LSA1MDAKcGFyX3Nocmlua2FnZV9iZXN0IDwtIDAuMDUKCnByb2JfcHJlZCA8LSB0ZXN0X2dibShiYXNlbGluZS5tb2QsIHRlc3RfZGF0YSwgcGFyX24udHJlZXNfYmVzdCwgcHJlZC50eXBlID0gJ3Jlc3BvbnNlJykKbGFiZWxfcHJlZF9nYm0gPC0gaWZlbHNlKHByb2JfcHJlZCA+IDAuNSwgMSwgMCkKYGBgCgpHZXQgcHJlZGljdGlvbnMgZnJvbSBSYW5kb20gRm9yZXN0CmBgYHtyfQpzb3VyY2UoIi4uL2xpYi90ZXN0X3JmLlIiKQoKZmVhdHVyZV90ZXN0IDwtIGFzLm1hdHJpeCh0ZXN0X2RhdGEpCmxhYmVsX3ByZWRfcmYgPC0gYXMuaW50ZWdlcihwcmVkaWN0KGFkdmFuY2VkLm1vZCwgZmVhdHVyZV90ZXN0KSkKYGBgCgpTYXZlIHByZWRpY3Rpb25zIGZyb20gbW9kZWxzCmBgYHtyfQpwcmVkaWN0aW9ucyA8LSBjYmluZChsYWJlbF9wcmVkX2dibSwgbGFiZWxfcHJlZF9yZikKcHJlZGljdGlvbnMgPC0gYXMuZGF0YS5mcmFtZShwcmVkaWN0aW9ucykKY29sbmFtZXMocHJlZGljdGlvbnMpIDwtIGMoImJhc2VsaW5lX3ByZWRpY3Rpb25zIiwgImFkdmFuY2VkX3ByZWRpY3Rpb25zIikKd3JpdGUuY3N2KHByZWRpY3Rpb25zLCAiLi4vb3V0cHV0L3Rlc3RfcmVzdWx0cy5jc3YiKQpgYGAKCgoKCgoKCgoKCgoKCg==</div>
 
 
 
