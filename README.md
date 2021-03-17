@@ -20,7 +20,7 @@ Term: Spring 2021
 
 Amir Idris organized and attended all group meetings, attempted to rework logistic regression to achieve better accuracy, wrote the outline for the group presentation, and constructed the main files for presenation as well as testing. 
 
-Catherine Gao performed research on potential advance models to optimize performance. She constructed the skeleton code for Random Forest by training the model with different sets of hyperparameters. She also further improved the model by implementing ROSE and PCA to create the best advance model with the highest testing accuracy and testing AUC. Catherine also prepared the README file in Github. 
+Catherine Gao performed research on potential advance models to optimize performance. She constructed the skeleton code for Random Forest by training the model with different sets of hyperparameters. She also further improved the model by implementing ROSE and PCA. Catherine also prepared the README file in Github and validated the codes in Main file. 
 
 Eve Washington assisted in researching advanced models, focusing on the theory behind the CNN model and alternatives to fiduciary point comparison. She implemented this research by desgining, training, and testing the CNN model. She also helped to validate the results of the Random Forest model for the presentation preparation. She attended all group meetings, particpated is discussions, and resolved errors in the main.Rmd file before submitting.
 
