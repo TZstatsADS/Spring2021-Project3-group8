@@ -26,7 +26,7 @@ Eve Washington assisted in researching advanced models, focusing on the theory b
 
 Ruize Yu built the SVM advanced model, attended all team meetings and participated in team discussions. Ruize is the presenter for our group. 
 
-Yiwen Fang investigated/wrote codes of GBM, XGBoost, DNN models in .Rmd, wrote PCA functions, helped with code review/debug for SVM model/cross-validation functions. Also, read/summarized past work/online materials to provide clues to find potential candidates from tens of models, explained/shared machine learning concepts with teammates during meetings.
+Yiwen Fang investigated/wrote codes of GBM and DNN models as baseline and advanced model respectively in .Rmd. He used cross validations to tune the model parameters of GBM and DNN. He wrote PCA functions, explored XGBoost model, helped with code review/debug for SVM model/cross-validation functions. Also, read/summarized past work/online materials to provide clues to find potential candidates from tens of models, explained/shared machine learning concepts with teammates during meetings.
 
 All team members contributed to the models and results discussions. All team members approve of this contribution statement.
 

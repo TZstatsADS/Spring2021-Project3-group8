@@ -15,7 +15,7 @@ cv.function_gbm <- function(features, labels, K, n.trees, shrinkage, reweight = 
   ### - shrinkage: tuning parameters
   ### - reweight: sample reweighting 
   
-  set.seed(2020)
+  set.seed(2030)
   n <- dim(features)[1]
   n.fold <- round(n/K, 0)
   s <- sample(n) %% K + 1

@@ -1,61 +1,139 @@
 ---
-title: "Test-Main - to be run on due date: Wednesday, March 17th 2021"
-author: "Amir Idris"
+title: "Test_main - to be run on due date: Wednesday, March 17th 2021"
+author: "Amir Idris, Yiwen Fang"
 output:
   pdf_document: default
   html_notebook: default
 ---
 
-Load baseline and advanced model
-```{r}
-load(file="../output/fit_train_gbm.RData")
-baseline.mod <- fit_train
+Label Prediction Script to export label_prediction.csv
 
-load(file="../output/fit_train_rf_pca.RData")
-advanced.mod <- fit_train_rf_pca
+```{r message=FALSE}
+if(!require("EBImage")){
+  install.packages("BiocManager")
+  BiocManager::install("EBImage")
+}
+if(!require("R.matlab")){
+  install.packages("R.matlab")
+}
+if(!require("readxl")){
+  install.packages("readxl")
+}
+
+if(!require("dplyr")){
+  install.packages("dplyr")
+}
+if(!require("readxl")){
+  install.packages("readxl")
+}
+
+if(!require("ggplot2")){
+  install.packages("ggplot2")
+}
+
+if(!require("caret")){
+  install.packages("caret")
+}
+
+if(!require("glmnet")){
+  install.packages("glmnet")
+}
+
+if(!require("WeightedROC")){
+  install.packages("WeightedROC")
+}
+
+if(!require("gbm")){
+  install.packages("gbm")
+}
+
+if(!require("xgboost")){
+  install.packages("xgboost")
+}
+
+if(!require("caret")){
+  install.packages("caret")
+}
+
+# Install Miniconda (https://docs.conda.io/en/latest/miniconda.html)
+if(!require("keras")){
+  install.packages("keras")
+}
+
+if(!require("tensorflow")){
+  install.packages("tensorflow")
+  install_tensorflow()
+}
+
+use_condaenv("r-tensorflow")
+library(keras)
+library(tensorflow)
+
+library(R.matlab)
+library(readxl)
+library(dplyr)
+library(EBImage)
+library(ggplot2)
+library(caret)
+library(glmnet)
+library(WeightedROC)
+library(gbm)
+require(xgboost)
+library(caret)
 ```
 
-Load input test data
 ```{r}
-test_data_path <- ""  #To be filled in on due date
-test_data <- read.csv(test_data_path)
+test_set_predict_dir <- "../data/test_set_predict/" # This will be modified for different data sets.
+test_set_predict_image_dir <- paste(test_set_predict_dir, "images/", sep="")
+test_set_predict_pt_dir <- paste(test_set_predict_dir,  "points/", sep="")
+test_set_predict_label_path <- paste(test_set_predict_dir, "label_prediction.csv", sep="") 
 ```
 
-Get predictions from GBM
 ```{r}
+info <- read.csv(test_set_predict_label_path)
+info_idx <- info$Index
+```
+
+```{r}
+readMat.matrix <- function(index){
+     return(round(readMat(paste0(test_set_predict_pt_dir, sprintf("%04d", index), ".mat"))[[1]],0))
+}
+n_files <- length(list.files(test_set_predict_image_dir))
+#load fiducial points
+test_set_predict_fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
+save(test_set_predict_fiducial_pt_list, file="../output/test_set_predict_fiducial_pt_list.RData")
+```
+
+```{r feature}
+source("../lib/feature.R")
+
+if(TRUE){
+  dat_test_set_predict <- feature(test_set_predict_fiducial_pt_list, info_idx)
+  save(dat_test_set_predict, file="../output/dat_test_set_predict.RData")
+}else{
+  load(file="../output/dat_test_set_predict.RData")
+}
+
+feature_test <- data.matrix(dat_test_set_predict[, -6007])
+```
+
+```{r GBM_Baseline}
 source("../lib/test_gbm.R")
+load(file="../output/fit_train_gbm.RData")
+
 par_n.trees_best <- 500
-par_shrinkage_best <- 0.05
-
-prob_pred <- test_gbm(baseline.mod, test_data, par_n.trees_best, pred.type = 'response')
-label_pred_gbm <- ifelse(prob_pred > 0.5, 1, 0)
+prob_pred_gbm <- test_gbm(fit_train_gbm, feature_test, par_n.trees_best, pred.type = 'response')
+label_pred_gbm <- ifelse(prob_pred_gbm > 0.5, 1, 0)
 ```
 
-Get predictions from Random Forest
-```{r}
-source("../lib/test_rf.R")
-
-feature_test <- as.matrix(test_data)
-label_pred_rf <- as.integer(predict(advanced.mod, feature_test))
+```{r DNN_Advanced}
+source("../lib/test_dnn.R")
+fit_train_dnn <- load_model_hdf5("../output/fit_train_dnn.h5")
+label_pred_dnn <- test_dnn(fit_train_dnn, feature_test, type = "predict_classes")
 ```
 
-Save predictions from models
-```{r}
-predictions <- cbind(label_pred_gbm, label_pred_rf)
-predictions <- as.data.frame(predictions)
-colnames(predictions) <- c("baseline_predictions", "advanced_predictions")
-write.csv(predictions, "../output/test_results.csv")
+```{r Save to csv file}
+res <- cbind(info$Index, label_pred_gbm, label_pred_dnn)
+colnames(res) <- c("Index", "Baseline", "Advanced")
+write.csv(res, "../output/label_prediction.csv", row.names=F)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
