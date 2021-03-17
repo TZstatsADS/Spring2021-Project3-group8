@@ -21,6 +21,10 @@ Term: Spring 2021
   + Our best advance model is DNN. This model has 74% testing accuracy and 85% testing AUC, which trained in 327s. Our result is significantly improved compared to GBM baseline model with 72% testing accuracy, 80% testing AUC, and 69s training time.
   + For DNN, Five dense layers with multiple Neurons are sued to ensure the accuracy of the model. layer_batch_normalization, regularizer_l1_l2, and layer_dropout are applied to avoid overfitting.
 
++ Files:
+    + GBM and DNN are in `doc/main.Rmd`.
+    + Other models are in the other GitHub branches named with model names.
+
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement.
 
 Amir Idris organized and attended all group meetings, attempted to rework logistic regression to achieve better accuracy, wrote the outline for the group presentation, and constructed the main files for presenation as well as testing.
