@@ -86,7 +86,7 @@ library(caret)
 
 ### Step 0 set work directories
 ```{r wkdir, eval=FALSE}
-set.seed(2020)
+set.seed(2040)
 # setwd("~/Project3-FacialEmotionRecognition/doc")
 # here replace it with your own path or manually set it in RStudio to where this rmd file is located. 
 # use relative path for reproducibility

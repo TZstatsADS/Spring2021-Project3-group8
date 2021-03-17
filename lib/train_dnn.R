@@ -37,17 +37,59 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
   model <- keras_model_sequential()
   model %>% 
     layer_batch_normalization() %>%
-    layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train)) %>%
-    # layer_dropout(rate = 0.2) %>%
+    layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train), kernel_regularizer = regularizer_l1_l2(l1 = 0.00002, l2 = 0.00002),) %>%
+    layer_dropout(rate = 0.3) %>%
     layer_batch_normalization() %>%
-    layer_dense(units = 256, activation = 'relu') %>%
-    # layer_dropout(rate = 0.2) %>%
+    layer_dense(units = 256, activation = 'relu', kernel_regularizer = regularizer_l1_l2(l1 = 0.00001, l2 = 0.00001),) %>%
+    layer_dropout(rate = 0.3) %>%
     layer_batch_normalization() %>%
-    layer_dense(units = 128, activation = 'relu') %>%
-    # layer_dropout(rate = 0.2) %>%
+    layer_dense(units = 128, activation = 'relu', kernel_regularizer = regularizer_l1_l2(l1 = 0.00001, l2 = 0.00001),) %>%
+    layer_dropout(rate = 0.3) %>%
     layer_batch_normalization() %>%
     layer_dense(units = 64, activation = 'relu') %>%
     layer_dense(units = 2, activation = 'softmax')
+  
+    # lr = 0.0001, 80%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train)) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 256, activation = 'relu') %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 128, activation = 'relu') %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 64, activation = 'relu') %>%
+    # layer_dense(units = 2, activation = 'softmax')
+  
+    # lr = 0.0002, 79.06296 % + 0.8666566
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train), kernel_regularizer = regularizer_l1_l2(l1 = 0.00002, l2 = 0.00002),) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 256, activation = 'relu', kernel_regularizer = regularizer_l1_l2(l1 = 0.00001, l2 = 0.00001),) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 128, activation = 'relu', kernel_regularizer = regularizer_l1_l2(l1 = 0.00001, l2 = 0.00001),) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 64, activation = 'relu') %>%
+    # layer_dense(units = 2, activation = 'softmax')
+  
+    # lr = 0.0005, 76.02036 % + 0.8521545
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train), kernel_regularizer = regularizer_l1_l2(l1 = 0.0001, l2 = 0.0001),) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 256, activation = 'relu', kernel_regularizer = regularizer_l1_l2(l1 = 0.00001, l2 = 0.00001),) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 128, activation = 'relu', kernel_regularizer = regularizer_l1_l2(l1 = 0.00001, l2 = 0.00001),) %>%
+    # layer_dropout(rate = 0.3) %>%
+    # layer_batch_normalization() %>%
+    # layer_dense(units = 64, activation = 'relu') %>%
+    # layer_dense(units = 2, activation = 'softmax')
   
     # layer_batch_normalization() %>%
     # layer_dense(units = 600, activation = 'relu', input_shape = ncol(x_train)) %>%
@@ -64,14 +106,14 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
   
   history <- model %>% compile(
     loss = 'binary_crossentropy',
-    optimizer = optimizer_adam(lr = 0.001),
+    optimizer = optimizer_adam(lr = 0.0002),
     metrics = c('accuracy')
   )
   
   model %>% fit(
     x_train, y_train, 
     epochs = 100, 
-    batch_size = 10,
+    batch_size = 50,
     # validation_split = validation_split,
     validation_data = validation_data,
     sample_weight = w
