@@ -1,6 +1,6 @@
 ---
 title: "Group 8 Main"
-author: "Chengliang Tang, Yujie Wang, Diane Lu, Tian Zheng, Yiwen Fang"
+author: "Amir Idris, Catherine Gao, Eve Washington, Ruize Yu, Yiwen Fang"
 output:
   pdf_document: default
   html_notebook: default
