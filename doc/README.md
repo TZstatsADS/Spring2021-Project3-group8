@@ -2,4 +2,4 @@
 
 ### Doc folder
 
-The doc directory contains the report or presentation files. It can have subfolders.  
+The main_svm.html is the final result.  
