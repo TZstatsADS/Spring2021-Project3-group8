@@ -141,7 +141,7 @@ n.trees <- c(500, 1000, 1500)
 shrinkage <- c(0.01, 0.05, 0.1)
 
 # DNN parameters
-lr <- c(0.0002, 0.0005, 0.001)
+lrs <- c(0.0002, 0.0005, 0.001)
 ```
 
 ### Step 2: import data and train-test split 
@@ -307,6 +307,7 @@ par_shrinkage_best <- 0.05
 ```{r final_train}
 feature_train = as.matrix(dat_train[, -6007])
 label_train = as.integer(dat_train$label)
+feature_test <- as.matrix(dat_test[, -6007])
 
 # training weights
 weight_train <- rep(NA, length(label_train))
@@ -338,11 +339,6 @@ if(run.test_gbm){
 ```{r}
 ## reweight the test data to represent a balanced label distribution
 label_test <- as.integer(dat_test$label)
-
-# DELETE
-save(feature_test, file="../output/feature_test_tmp_only.RData")
-save(label_test, file="../output/label_test_tmp_only.RData")
-# DELETE
 
 weight_test <- rep(NA, length(label_test))
 for (v in unique(label_test)){
@@ -404,20 +400,20 @@ label_train = as.integer(dat_train$label)
 
 if(run.cv_dnn){
   # res_cv_dnn <- matrix(0, 1, ncol = 4)
-  res_cv_dnn <- matrix(0, nrow = length(lr), ncol = 6)
+  res_cv_dnn <- matrix(0, nrow = length(lrs), ncol = 6)
   count = 0
-  for(i in 1:length(lr)){
+  for(i in 1:length(lrs)){
     count = count + 1
-    cat("lr =", lr[i], "\n")
+    cat("lr =", lrs[i], "\n")
     
     res_cv <- cv.function_dnn(features = feature_train, labels = label_train, K,
-                            reweight = sample.reweight, lr[i])
+                            reweight = sample.reweight, lr = lrs[i])
     
     res_cv_dnn[count,] <- c(lr[i], res_cv[1], res_cv[2], res_cv[3], res_cv[4])
   }
   
   res_cv <- cv.function_dnn(features = feature_train, labels = label_train, K,
-                          reweight = sample.reweight)
+                          reweight = sample.reweight, lr = lrs[i])
 
   colnames(res_cv_dnn) <- c("lr", "mean_error", "sd_error", "mean_AUC", "sd_AUC")
   save(res_cv_dnn, file="../output/res_cv_dnn.RData")
@@ -433,13 +429,13 @@ res_cv_dnn <- as.data.frame(res_cv_dnn)
 
 if(run.cv_dnn){
   p1 <- res_cv_dnn %>%
-    ggplot(aes(x = lr, y = mean_error,
+    ggplot(aes(x = lrs, y = mean_error,
                ymin = mean_error - sd_error, ymax = mean_error + sd_error)) +
     geom_crossbar() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
   
   p2 <- res_cv_dnn %>%
-    ggplot(aes(x = lr, y = mean_AUC,
+    ggplot(aes(x = lrs, y = mean_AUC,
                ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) +
     geom_crossbar() +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
@@ -453,7 +449,8 @@ if(run.cv_dnn){
 
 * Choose the "best" parameter value
 ```{r best_model_dnn}
-par_lr_best <- as.numeric(res_cv_dnn[which.min(res_cv_dnn$mean_error), 1])
+# par_lr_best <- as.numeric(res_cv_dnn[which.min(res_cv_dnn$mean_error), 1])
+par_lr_best = 0.0002
 ```
 
 * Train the model with the entire training set using the selected model (model parameter) via cross-validation.
@@ -493,8 +490,8 @@ tm_test = NA
 feature_test <- as.matrix(dat_test[, -6007])
 if(run.test_dnn){
   fit_train <- load_model_hdf5("../output/fit_train_dnn.h5")
-  tm_test <- system.time({label_pred <- test_dnn(fit_train, feature_test, type = "predict_classes");
-   prob_pred <- test_dnn(fit_train, feature_test, type = "predict_proba")})
+  tm_test <- system.time({label_pred <- test_dnn(fit_train, feature_test, type = "predict_classes");})
+  prob_pred <- test_dnn(fit_train, feature_test, type = "predict_proba")
 }
 ```
 
@@ -520,7 +517,7 @@ tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
 auc <- WeightedAUC(tpr.fpr)
 
 
-cat("The accuracy of model:", "GDNN with lr =", par_lr_best, "is", accu*100, "%.\n")
+cat("The accuracy of model:", "DNN with lr =", par_lr_best, "is", accu*100, "%.\n")
 cat("The AUC of model:", "DNN", "is", auc, ".\n")
 
 

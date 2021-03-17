@@ -6,7 +6,7 @@
 ### Project 3
 
 
-cv.function_dnn <- function(features, labels, K, reweight = FALSE){
+cv.function_dnn <- function(features, labels, K, reweight = FALSE, lr){
   ### Input:
   ### - features: feature data frame
   ### - labels: label data vector
@@ -40,18 +40,22 @@ cv.function_dnn <- function(features, labels, K, reweight = FALSE){
     ## model training
     # validation_split <- length(label_test) / (length(label_test) + length(label_train))
     # validation_split <- 0
-    if (reweight){
-      model_train <- train_dnn(feature_train, label_train, w = weight_train, feature_test, label_test, weight_test)
-    } else {
-      model_train <- train_dnn(feature_train, label_train, w = NULL, feature_test, label_test, NULL)
-    }
-    
-    ## make predictions
-    label_pred <- test_dnn(model_train, feature_test)
     
     label_test <- ifelse(label_test == 2, 1, 0)
     
+    if (reweight){
+      model_train <- train_dnn(feature_train, label_train, w = weight_train, feature_test, label_test, weight_test, lr)
+    } else {
+      model_train <- train_dnn(feature_train, label_train, w = NULL, feature_test, label_test, NULL, lr)
+    }
+    
+    ## make predictions
+    label_pred <- test_dnn(model_train, feature_test, type = "predict_classes")
+    
     cv.error[i] <- 1 - sum(weight_test * (label_pred == label_test)) / sum(weight_test)
+    
+    prob_pred <- test_dnn(model_train, feature_test, type = "predict_proba")
+    prob_pred <- prob_pred[, 2]
     
     tpr.fpr <- WeightedROC(prob_pred, label_test, weight_test)
     cv.AUC[i] <- WeightedAUC(tpr.fpr)

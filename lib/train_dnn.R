@@ -13,7 +13,7 @@
 # labels = get(y)
 # rm(y)
 
-train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weight_test = NULL){
+train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weight_test = NULL, lr){
   labels <- ifelse(labels == 2, 1, 0)
   
   # class_weight <- NULL
@@ -36,6 +36,7 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
   
   model <- keras_model_sequential()
   model %>% 
+    # lr = 0.0002
     layer_batch_normalization() %>%
     layer_dense(units = 512, activation = 'relu', input_shape = ncol(x_train), kernel_regularizer = regularizer_l1_l2(l1 = 0.00002, l2 = 0.00002),) %>%
     layer_dropout(rate = 0.3) %>%
@@ -106,7 +107,7 @@ train_dnn <- function(features, labels, w = NULL, feature_test, label_test, weig
   
   history <- model %>% compile(
     loss = 'binary_crossentropy',
-    optimizer = optimizer_adam(lr = 0.0002),
+    optimizer = optimizer_adam(lr = lr),
     metrics = c('accuracy')
   )
   
