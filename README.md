@@ -6,15 +6,10 @@
 
 Term: Spring 2021
 
-+ Team ##
-+ Team members
-	+ team member 1
-	+ team member 2
-	+ team member 3
-	+ team member 4
-	+ team member 5
++ Team 8
++ Team member Yiwen Fang
 
-+ Project summary: In this project, we created a classification engine for facial emotion recognition. 
++ Project summary: In this branch, I created a classification engine for facial emotion recognition using the XGBoost method. 
 	
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement. 
 
