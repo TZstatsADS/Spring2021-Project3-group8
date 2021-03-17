@@ -19,7 +19,7 @@ Term: Spring 2021
   + We also performed research on model optimization. We created several models including DNN, CNN, XGBoost, Logistic Regression, SVM, and Random Forecast based on a set of 3,000 facial images with imbalanced class ratio, resulting in 6,006 features for each observation. 
   + The goal is to identify two types of emotions: compound emotions (classified as 0) and basic emotions (classified as 1). To optimize performance of our models, we also tested our models with Random Over-Sampling Examples (ROSE) to rebalance the training data and improved features using Principal Component Analysis (PCA) to reduce the number of features to 66. 
   + Our best advance model is DNN. This model has 74% testing accuracy and 85% testing AUC, which trained in 327s. Our result is significantly improved compared to GBM baseline model with 72% testing accuracy, 80% testing AUC, and 69s training time.
-  + For DNN, Five dense layers with multiple Neurons are sued to ensure the accuracy of the model. layer_batch_normalization, regularizer_l1_l2, and layer_dropout are applied to avoid overfitting.
+  + For DNN (Dense Neural Network), Five dense layers with multiple Neurons are sued to ensure the accuracy of the model. layer_batch_normalization, regularizer_l1_l2, and layer_dropout are applied to avoid overfitting.
 
 + Files:
     + GBM and DNN are in `doc/main.Rmd`.
