@@ -1,20 +1,16 @@
 ---
-title: "Main"
+title: "Main Group 8"
 author: "Amir Idris, Catherine Gao, Eve Washington, Ruize Yu, Yiwen Fang"
 output:
   pdf_document: default
   html_notebook: default
+  html_document:
+    df_print: paged
 ---
 
-In your final repo, there should be an R markdown file that organizes **all computational steps** for evaluating your proposed Facial Expression Recognition framework. 
+Baseline model: GBM
 
-This file is currently a template for running evaluation experiments. You should update it according to your codes but following precisely the same structure. 
-
-### Environment Setup
-+ Python env is required to run DNN model in R combined with Keras and Tensorflow
-+ Install Miniconda for Python (https://docs.conda.io/en/latest/miniconda.html)
-+ keras and tensorflow should be installed automatically
-+ use_condaenv("r-tensorflow") should be installed automatically. Restart RStudio if required in the console.
+Advanced models: SVM, RandomForest, DNN(best), CNN, Xgboost
 
 ```{r message=FALSE}
 if(!require("EBImage")){
@@ -130,10 +126,10 @@ K <- 5  # number of CV folds
 run.feature.train <- TRUE # process features for training set
 run.feature.test <- TRUE # process features for test set
 
-run.cv_gbm <- TRUE # run GBM cross-validation on the training set
+run.cv_gbm <- FALSE # run GBM cross-validation on the training set
 run.test_gbm <- TRUE # run GBM evaluation on an independent test set
 
-run.cv_dnn <- TRUE # run DNN cross-validation on the training set
+run.cv_dnn <- FALSE # run DNN cross-validation on the training set
 run.test_dnn <- TRUE # run DNN evaluation on an independent test set
 ```
 
@@ -400,60 +396,10 @@ source("../lib/test_dnn.R")
 #### Model selection with cross-validation
 * Do model selection by choosing among different values of training model parameters.
 
-Since DNN training takes very long time in K folds, we do not show the whole tuning process here.
-```{r runcv_dnn}
-source("../lib/cross_validation_dnn.R")
-feature_train = as.matrix(dat_train[, -6007])
-label_train = as.integer(dat_train$label)
-
-if(run.cv_dnn){
-  # res_cv_dnn <- matrix(0, 1, ncol = 4)
-  res_cv_dnn <- matrix(0, nrow = length(lrs), ncol = 5)
-  count = 0
-  for(i in 1:length(lrs)){
-    count = count + 1
-    cat("lr =", lrs[i], "\n")
-    
-    res_cv <- cv.function_dnn(features = feature_train, labels = label_train, K,
-                            reweight = sample.reweight, lr = lrs[i])
-    
-    res_cv_dnn[count,] <- c(lr[i], res_cv[1], res_cv[2], res_cv[3], res_cv[4])
-  }
-  
-  res_cv <- cv.function_dnn(features = feature_train, labels = label_train, K,
-                          reweight = sample.reweight, lr = lrs[i])
-
-  colnames(res_cv_dnn) <- c("lr", "mean_error", "sd_error", "mean_AUC", "sd_AUC")
-  save(res_cv_dnn, file="../output/res_cv_dnn.RData")
-}else{
-  load("../output/res_cv_dnn.RData")
-}
-
-```
+DNN training takes long time. There are almost numberless parameters, layers, regulation functions, to play with. It is unrealistic to use a simple and straightforward cross-validation to illustrate. Instead we put our best DNN model here after tuning.
 
 Visualize cross-validation results. 
-```{r cv_vis_dnn}
-res_cv_dnn <- as.data.frame(res_cv_dnn)
-
-if(run.cv_dnn){
-  p1 <- res_cv_dnn %>%
-    ggplot(aes(x = lrs, y = mean_error,
-               ymin = mean_error - sd_error, ymax = mean_error + sd_error)) +
-    geom_crossbar() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
-  p2 <- res_cv_dnn %>%
-    ggplot(aes(x = lrs, y = mean_AUC,
-               ymin = mean_AUC - sd_AUC, ymax = mean_AUC + sd_AUC)) +
-    geom_crossbar() +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
-  print(p1)
-  print(p2)
-}
-
-```
-
+N/A
 
 * Choose the "best" parameter value
 ```{r best_model_dnn}
