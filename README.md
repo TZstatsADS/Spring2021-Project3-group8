@@ -26,9 +26,14 @@ Eve Washington assisted in researching advanced models, focusing on the theory b
 
 Ruize Yu built the SVM advanced model, attended all team meetings and participated in team discussions. Ruize is the presenter for our group. 
 
-Yiwen Fang investigated/wrote codes of GBM and DNN models as baseline and advanced model respectively in .Rmd. He used cross validations to tune the model parameters of GBM and DNN. He wrote PCA functions, explored XGBoost model, helped with code review/debug for SVM model/cross-validation functions. Also, read/summarized past work/online materials to provide clues to find potential candidates from tens of models, explained/shared machine learning concepts with teammates during meetings.
+Yiwen Fang investigated/wrote codes of GBM and DNN models as baseline and advanced model respectively in .Rmd. He used cross validations to tune the model parameters of GBM and DNN. He wrote PCA functions, explored XGBoost model, wrote label prediction script to export label_prediction.csv, helped with code review/debug for SVM model/cross-validation functions. Also, read/summarized past work/online materials to provide clues to find potential candidates from tens of models, explained/shared machine learning concepts with teammates during meetings.
 
 All team members contributed to the models and results discussions. All team members approve of this contribution statement.
+
+## Project Strategies
+### DNN (Dense Neural Network)
+Five dense layers with multiple Neurons to ensure the accuracy of the model. layer_batch_normalization, regularizer_l1_l2, and layer_dropout are applied to avoid overfitting.
+
 
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.

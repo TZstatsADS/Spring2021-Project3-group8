@@ -143,11 +143,12 @@ Using cross-validation or independent test set evaluation, we compare the perfor
 
 ```{r model_setup}
 # GBM parameters
-n.trees <- c(500, 1000, 1500)
-shrinkage <- c(0.01, 0.05, 0.1)
+n.trees <- c(500, 1000)
+shrinkage <- c(0.01, 0.05)
 
 # DNN parameters
-lrs <- c(0.0002, 0.0005, 0.001)
+# lrs <- c(0.0002, 0.0005, 0.001)
+lrs <- c(0.0002)
 ```
 
 ### Step 2: import data and train-test split 
@@ -399,6 +400,7 @@ source("../lib/test_dnn.R")
 #### Model selection with cross-validation
 * Do model selection by choosing among different values of training model parameters.
 
+Since DNN training takes very long time in K folds, we do not show the whole tuning process here.
 ```{r runcv_dnn}
 source("../lib/cross_validation_dnn.R")
 feature_train = as.matrix(dat_train[, -6007])
