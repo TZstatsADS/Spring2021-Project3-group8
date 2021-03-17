@@ -6,13 +6,13 @@
 
 Term: Spring 2021
 
-+ Team ##
++ Team 8
 + Team members
-	+ team member 1
-	+ team member 2
-	+ team member 3
-	+ team member 4
-	+ team member 5
+    + Amir Idris
+    + Catherine Gao
+    + Eve Washington
+    + Ruize Yu
+    + Yiwen Fang
 
 + Project summary: 
 + In this project, we created a classification engine for facial emotion recognition. We used **Gradient Boosting Machines (GBM)** as our baseline model, and the advance model is **Dense Neural Network (DNN)**. 
@@ -20,7 +20,19 @@ Term: Spring 2021
   + The goal is to identify two types of emotions: compound emotions (classified as 0) and basic emotions (classified as 1). To optimize performance of our models, we also tested our models with Random Over-Sampling Examples (ROSE) to rebalance the training data and improved features using Principal Component Analysis (PCA) to reduce the number of features to 66. 
 In this branch we attempted to rework logistic regression into a workable model. The lasso penalty was removed and compared with lasso regression. 
 	
-**Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement. 
+**Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement.
+
+Amir Idris organized and attended all group meetings, attempted to rework logistic regression to achieve better accuracy, wrote the outline for the group presentation, and constructed the main files for presenation as well as testing.
+
+Catherine Gao performed research on potential advance models to optimize performance. She constructed the skeleton code for Random Forest by training the model with different sets of hyperparameters. She also further improved the model by implementing ROSE and PCA with Random Forest and validating the xgboost model. Catherine also prepared the README file in Github and validated the codes in Main file.
+
+Eve Washington assisted in researching advanced models, focusing on the theory behind the CNN model and alternatives to fiduciary point comparison. She implemented this research by desgining, training, and testing the CNN model. She also helped to validate the results of the Random Forest model for the presentation preparation. She attended all group meetings, particpated is discussions, and resolved errors in the main.Rmd file before submitting.
+
+Ruize Yu built the SVM advanced model, attended all team meetings and participated in team discussions. Ruize is the presenter for our group and makes sure the main file runs smoothly in R.
+
+Yiwen Fang investigated/wrote codes of GBM and DNN models as baseline and advanced model respectively in .Rmd. He used cross validations to tune the model parameters of GBM and DNN. He wrote PCA functions, explored XGBoost model, wrote label prediction script to export label_prediction.csv, helped with code review/debug for SVM model/cross-validation functions. Also, read/summarized past work/online materials to provide clues to find potential candidates from tens of models, explained/shared machine learning concepts with teammates during meetings.
+
+All team members contributed to the models and results discussions. All team members approve of this contribution statement.
 
 Following [suggestions](http://nicercode.github.io/blog/2013-04-05-projects/) by [RICH FITZJOHN](http://nicercode.github.io/about/#Team) (@richfitz). This folder is orgarnized as follows.
 
