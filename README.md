@@ -9,7 +9,7 @@ Term: Spring 2021
 + Team 8
 + Branch Editor: Eve Washington 
 
-+ Project summary: In this Brnach project, I created a classification engine for facial emotion recognition using a Convolutional neural network. Main.RMD contains all the code to run the Network. 
++ Project summary: In this branch, I created a classification engine for facial emotion recognition using a Convolutional neural network. Main.RMD contains all the code to run the Network. 
 	
 ```
 proj/
