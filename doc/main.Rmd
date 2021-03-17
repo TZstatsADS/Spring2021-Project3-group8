@@ -6,10 +6,6 @@ output:
   html_notebook: default
 ---
 
-In your final repo, there should be an R markdown file that organizes **all computational steps** for evaluating your proposed Facial Expression Recognition framework. 
-
-This file is currently a template for running evaluation experiments. You should update it according to your codes but following precisely the same structure. 
-
 ```{r message=FALSE, warning = FALSE, echo = FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
 if(!require("EBImage")){
   install.packages("BiocManager")
@@ -58,6 +54,10 @@ if(!require("tensorflow")){
 }
 use_condaenv("r-tensorflow")
 
+if(!require("caret")){
+  install.packages("caret")
+}
+
 packages.used <- c("R.matlab","readxl", "dplyr", "ggplot2", "caret","pROC","randomForest", "magrittr", "e1071","grid","gridExtra", "ROSE", "DMwR")
 # check packages that need to be installed.
 packages.needed <- setdiff(packages.used, intersect(installed.packages()[,1], packages.used))
@@ -73,7 +73,7 @@ library(grid)
 library(gridExtra)
 library(ROSE)
 library(DMwR)
-
+library(caret)
 library(keras)
 library(tensorflow)
 library(R.matlab)
@@ -89,7 +89,7 @@ require(xgboost)
 library(caret)
 ```
 
-### Step 0 set work directories
+## Set work directories
 ```{r wkdir, eval=FALSE}
 set.seed(2020)
 # setwd("~/Project3-FacialEmotionRecognition/doc")
@@ -97,7 +97,7 @@ set.seed(2020)
 # use relative path for reproducibility
 ```
 
-Provide directories for training images. Training images and Training fiducial points will be in different subfolders. 
+Provide directories for training data. Training images and Training fiducial points will be in different subfolders. 
 ```{r}
 train_dir <- "../data/train_set/" # This will be modified for different data sets.
 train_image_dir <- paste(train_dir, "images/", sep="")
@@ -105,32 +105,46 @@ train_pt_dir <- paste(train_dir,  "points/", sep="")
 train_label_path <- paste(train_dir, "label.csv", sep="") 
 ```
 
-### Step 1: set up controls for evaluation experiments.
+## Set up controls for evaluation experiments.
 
 In this chunk, we have a set of controls for the evaluation experiments. 
 
-+ (T/F) cross-validation on the training set
++ (T/F) sample reweighting in model training
++ (number) K, the number of CV folds
+
++ (T/F) process features for training set
++ (T/F) process features for testing set
++ (T/F) Train PCA and create training and testing dataframes.
+
++ (T/F) cross-validation on the GBM training set
++ (T/F) GBM evaluation on an independent test set
+
++ (T/F) cross-validation on the Random Forest (RF) training set
++ (T/F) run evaluation on entire train set RF
++ (T/F) run evaluation on an independent test set
+
 + (T/F) reweighting the samples for training set 
 + (number) K, the number of CV folds
-+ (T/F) process features for training set
+
 + (T/F) run evaluation on an independent test set
 + (T/F) process features for test set
 
 ```{r exp_setup}
+
 sample.reweight <- TRUE # run sample reweighting in model training
 K <- 5  # number of CV folds
+
 run.feature.train <- FALSE # process features for training set
 run.feature.test <- FALSE # process features for test set
+train.pca <- FALSE #Train and create training and testing PCA databases
+
 run.cv_gbm <- FALSE # run GBM cross-validation on the training set
 run.test_gbm <- TRUE # run GBM evaluation on an independent test set
-train.pca <- FALSE
-run.fudicial.list <- FALSE
+
 run.cv.rf <- FALSE # run cross-validation on the training set for random forest 
-run.train.rf <- FALSE # run evaluation on entire train set
+run.train.rf <- FALSE # run evaluation on entire train set RF
 run.test.rf <- TRUE # run evaluation on an independent test set
 ```
-
-<!-- Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this Starter Code, we tune parameter lambda (the amount of shrinkage) for logistic regression with LASSO penalty. -->
 
 Using cross-validation or independent test set evaluation, we compare the performance of models with different specifications. In this part, we tune parameter n.trees and shrinkage for GBM.
 
@@ -148,7 +162,7 @@ hyper_grid_rf <- expand.grid(
   mtry = c(20,50))
 ```
 
-### Step 2: import data and train-test split 
+## Import data and set up train-test split 
 ```{r}
 #train-test split
 info <- read.csv(train_label_path)
@@ -156,31 +170,26 @@ n <- nrow(info)
 n_train <- round(n*(4/5), 0)
 train_idx <- sample(info$Index, n_train, replace = F)
 test_idx <- setdiff(info$Index, train_idx)
-```
-
-If you choose to extract features from images, such as using Gabor filter, R memory will exhaust all images are read together. The solution is to repeat reading a smaller batch(e.g 100) and process them. 
-```{r}
 n_files <- length(list.files(train_image_dir))
-image_list <- list()
-for(i in 1:100){
-   image_list[[i]] <- readImage(paste0(train_image_dir, sprintf("%04d", i), ".jpg"))
-}
+
 ```
 
 Fiducial points are stored in matlab format. In this step, we read them and store them in a list.
 ```{r read fiducial points}
 #function to read fiducial points
-#input: index
-#output: matrix of fiducial points corresponding to the index
+  #input: index
+  #output: matrix of fiducial points corresponding to the index
+
 readMat.matrix <- function(index){
      return(round(readMat(paste0(train_pt_dir, sprintf("%04d", index), ".mat"))[[1]],0))
 }
+
 #load fiducial points
 fiducial_pt_list <- lapply(1:n_files, readMat.matrix)
 save(fiducial_pt_list, file="../output/fiducial_pt_list.RData")
 ```
 
-### Step 3: construct features and responses
+## Construct features and responses
 
 + The follow plots show how pairwise distance between fiducial points can work as feature for facial emotion recognition.
 
@@ -191,7 +200,7 @@ and the midpoint of the upper lip(52).  For example, the distance of an happy fa
 
 ![Figure1](../figs/feature_visualization.jpg)
 
-`feature.R` should be the wrapper for all your feature engineering functions and options. The function `feature( )` should have options that correspond to different scenarios for your project and produces an R object that contains features and responses that are required by all the models you are going to evaluate later. 
+`feature.R` house a feature engineering functions used to create the the GBM model. 
   
   + `feature.R`
   + Input: list of images or fiducial point
@@ -215,7 +224,7 @@ if(run.feature.test){
 }
 ```
 
-We will train a PCA model with the training set to use with RF, then apply the same PCA model to the testing set. 
+`featur_pca.R` houses a function used to create a PCA model. We will train a PCA model with the training set to use with RF, then apply the same PCA model to the testing set. 
 
 ```{r pca}
 # create PCA features from Yiwen's function
@@ -236,9 +245,9 @@ load(feature_pca_test, file="../output/feature_pca_test.RData")
 }
 ```
 
-### GBM
+## The Baseline GBM Model
 
-### Step 4: Train a classification model with training features and responses
+###  Train the GBM model with training features and responses
 Call the train model and test model from library. 
 
 `train.R` and `test.R` should be wrappers for all your model training steps and your classification/prediction steps. 
@@ -258,7 +267,7 @@ source("../lib/train_gbm.R")
 source("../lib/test_gbm.R")
 ```
 
-#### Model selection with cross-validation
+### Model selection with cross-validation
 * Do model selection by choosing among different values of training model parameters.
 
 ```{r runcv}
@@ -337,7 +346,7 @@ if (sample.reweight){
 save(fit_train, file="../output/fit_train_gbm.RData")
 ```
 
-### Step 5: Run test on test images
+### Run test on test images
 ```{r test}
 tm_test = NA
 feature_test <- as.matrix(dat_test[, -6007])
@@ -378,7 +387,7 @@ cat("Time for testing model=", tm_test[3], "s \n")
 
 ## Random Forest
 
-### Step 4: Train a classification model with training features and responses
+### Train a Random Forest model with training features and responses
 
 Call the train_rf model and test_rf model from library. 
 
@@ -388,11 +397,11 @@ source("../lib/test_rf.R")
 source("../lib/cross_validation_rf.R")
 ```
 
-#### Model selection with cross-validation
+### Model selection with cross-validation
 
 * Do model selection by choosing among different values of training model parameters.
 
-I cross-validate hyperparameter "ntrees" and "mtry" with 5-fold validation to identify the combination that gives the highest AUC and lowest error.
+We will Cross-validate hyperparameter "ntrees" and "mtry" with 5-fold validation to identify the combination that gives the highest AUC and lowest error.
 
 + ntree: the default value for ntree is 500, so I'm choosing numbers below and above the default to test for results. The chosen ntree is: 200, 500, 800, 1000.  
 
@@ -462,7 +471,7 @@ save(fit_train_rf_pca, tm_train_rf_pca, file="../output/fit_train_rf_pca.RData")
 }
 ```
 
-### Step 5: Run test on test images
+### Run test on test images
 
 ```{r test_rf_pca}
 tm_test_rf_pca = NA
@@ -474,7 +483,7 @@ if(run.test.rf){
 }
 ```
 
-#### Evaluation
+### Evaluation
 
 ```{r evaluation_rf_pca, echo=FALSE}
 accu_rf = mean(label_pred == as.integer(label_test))
@@ -485,7 +494,7 @@ cat("The unweighted accuracy of the random forest model is ", accu_rf*100, "%.\n
 cat("The unweighted AUC of the random forest model is ", auc_rf, ".\n")
 ```
 
-#### Summarize Running Time
+### Summarize Running Time
 
 Prediction performance matters, so does the running times for constructing features and for training the model, especially when the computation resource is limited. 
 
@@ -495,7 +504,7 @@ cat("Time for testing random forest model=", tm_test_rf_pca[1], "s \n")
 
 ```
 
-###Reference
+## Reference
 
 - Du, S., Tao, Y., & Martinez, A. M. (2014). Compound facial expressions of emotion. Proceedings of the National Academy of Sciences, 111(15), E1454-E1462.
 
