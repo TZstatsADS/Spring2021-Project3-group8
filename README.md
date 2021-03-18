@@ -8,22 +8,28 @@ Term: Spring 2021
 
 + Team 8
 + Team members
-    + Amir Idris
-    + Catherine Gao
-    + Eve Washington
-    + Ruize Yu
-    + Yiwen Fang
+  + Amir Idris
+  + Catherine Gao
+  + Eve Washington
+  + Ruize Yu
+  + Yiwen Fang
 
-+ Project summary: 
-  + In this project, we created a classification engine for facial emotion recognition. We used **Gradient Boosting Machines (GBM)** as our baseline model, and the advance model is **Dense Neural Network (DNN)**. 
-  + We also performed research on model optimization. We created several models including DNN, CNN, XGBoost, Logistic Regression, SVM, and Random Forecast based on a set of 3,000 facial images with imbalanced class ratio, resulting in 6,006 features for each observation. 
-  + The goal is to identify two types of emotions: compound emotions (classified as 0) and basic emotions (classified as 1). To optimize performance of our models, we also tested our models with Random Over-Sampling Examples (ROSE) to rebalance the training data and improved features using Principal Component Analysis (PCA) to reduce the number of features to 66. 
++ Project summary:
+  + In this project, we created a classification engine for facial emotion recognition. We used **Gradient Boosting Machines (GBM)** as our baseline model, and the advance model is **Dense Neural Network (DNN)**.
+  + We also performed research on model optimization. We created several models including DNN, CNN, XGBoost, Logistic Regression, SVM, and Random Forecast based on a set of 3,000 facial images with imbalanced class ratio, resulting in 6,006 features for each observation.
+  + The goal is to identify two types of emotions: compound emotions (classified as 0) and basic emotions (classified as 1). To optimize performance of our models, we also tested our models with Random Over-Sampling Examples (ROSE) to rebalance the training data and improved features using Principal Component Analysis (PCA) to reduce the number of features to 66.
   + Our best advance model is DNN. This model has 74% testing accuracy and 85% testing AUC, which trained in 327s. Our result is significantly improved compared to GBM baseline model with 72% testing accuracy, 80% testing AUC, and 69s training time.
   + For DNN (Dense Neural Network), Five dense layers with multiple Neurons are sued to ensure the accuracy of the model. layer_batch_normalization, regularizer_l1_l2, and layer_dropout are applied to avoid overfitting.
 
 + Files:
-    + GBM and DNN are in `doc/main.Rmd`.
-    + Other models are in the other GitHub branches named with model names.
+  + GBM and DNN are in `doc/main.Rmd`.
+  + Other models are in the other GitHub branches named with model names.
+
++ Environment Setup:
+  + Python env is required to run DNN model in R combined with Keras and Tensorflow.
+  + Install Miniconda for Python (https://docs.conda.io/en/latest/miniconda.html).
+  + keras and tensorflow should be installed automatically.
+  + use_condaenv("r-tensorflow") should be installed automatically. Restart RStudio if required in the console.
 
 **Contribution statement**: ([default](doc/a_note_on_contributions.md)) All team members contributed equally in all stages of this project. All team members approve our work presented in this GitHub repository including this contributions statement.
 
