@@ -126,7 +126,7 @@ K <- 5  # number of CV folds
 run.feature.train <- TRUE # process features for training set
 run.feature.test <- TRUE # process features for test set
 
-run.cv_gbm <- FALSE # run GBM cross-validation on the training set
+run.cv_gbm <- TRUE # run GBM cross-validation on the training set
 run.test_gbm <- TRUE # run GBM evaluation on an independent test set
 
 run.cv_dnn <- FALSE # run DNN cross-validation on the training set
